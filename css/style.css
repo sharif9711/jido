@@ -1,0 +1,51 @@
+/* css/style.css */
+
+/* 테이블 공통 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid #e5e7eb;
+  padding: 4px 8px;
+}
+input, select {
+  outline: none;
+  font-size: 13px;
+}
+
+/* 스크롤 스타일 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+/* 지도 이름 라벨 */
+.labelCapsule {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(3px);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  transition: all 0.2s ease-in-out;
+}
+
+/* 버튼 공통 */
+button {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+button:hover {
+  opacity: 0.9;
+}
