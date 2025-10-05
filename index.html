@@ -8,6 +8,7 @@
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
 </head>
 <body class="bg-gray-50">
+
   <header class="flex items-center justify-between px-4 py-3 bg-blue-600 text-white shadow">
     <button id="backBtn" class="text-2xl">←</button>
     <h1 class="text-lg font-semibold" id="projectTitle">프로젝트명</h1>
@@ -42,16 +43,8 @@
     <table class="min-w-full text-sm border">
       <thead class="bg-gray-100">
         <tr>
-          <th class="w-12">순번</th>
-          <th class="w-32">이름</th>
-          <th class="w-40">연락처</th>
-          <th class="w-96">주소</th>
-          <th class="w-40">품목</th>
-          <th class="w-20">상태</th>
-          <th class="w-40">PNU</th>
-          <th class="w-40">지목</th>
-          <th class="w-40">면적</th>
-          <th class="w-96">메모</th>
+          <th>순번</th><th>이름</th><th>연락처</th><th>주소</th>
+          <th>품목</th><th>상태</th><th>PNU</th><th>지목</th><th>면적</th><th>메모</th>
         </tr>
       </thead>
       <tbody id="recordTableBody"></tbody>
@@ -61,15 +54,11 @@
   <!-- 지도 섹션 -->
   <section id="mapSection" class="hidden relative w-full h-[calc(100vh-56px)]">
     <div id="map" class="w-full h-full"></div>
-
-    <!-- 왼쪽 지도 버튼 -->
     <div class="absolute left-2 top-16 flex flex-col gap-2">
       <button id="toggleName" class="bg-blue-600 text-white px-3 py-1 rounded shadow">이름 On</button>
       <button id="gpsBtn" class="bg-gray-600 text-white px-3 py-1 rounded shadow">GPS Off</button>
       <button id="routeBtn" class="bg-gray-600 text-white px-3 py-1 rounded shadow">경로 Off</button>
     </div>
-
-    <!-- 하단 정보창 -->
     <div id="infoBox" class="absolute bottom-0 left-0 w-full bg-white border-t hidden"></div>
   </section>
 
@@ -77,5 +66,6 @@
   <script type="module" src="./js/ui.js"></script>
   <script type="module" src="./js/mapMain.js"></script>
   <script type="module" src="./js/app.js"></script>
+
 </body>
 </html>

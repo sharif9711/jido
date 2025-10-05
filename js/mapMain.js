@@ -1,7 +1,6 @@
 import { dataStore } from "./dataStore.js";
 
 let map, geocoder;
-let markers = [];
 let overlays = [];
 let showNames = true;
 
@@ -34,7 +33,6 @@ export function renderMapMarkers() {
       if (status === kakao.maps.services.Status.OK) {
         const pos = new kakao.maps.LatLng(result[0].y, result[0].x);
         const marker = new kakao.maps.Marker({ position: pos, map });
-        markers.push(marker);
 
         const isDup = nameCount[item.주소] > 1;
         const capsule = document.createElement("div");
