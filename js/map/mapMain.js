@@ -1,4 +1,5 @@
 document.getElementById("mapBtn").addEventListener("click", () => {
+  // 기존 메뉴 숨기기
   document.querySelector("nav").style.display = "none";
   document.getElementById("projectContent").innerHTML = `
     <div id="mapContainer" class="w-full h-[calc(100vh-64px)] relative">
@@ -17,15 +18,25 @@ document.getElementById("mapBtn").addEventListener("click", () => {
       <div id="infoPanel" class="hidden absolute bottom-0 left-0 right-0 bg-white shadow-inner border-t rounded-t-2xl p-4 z-50"></div>
     </div>
   `;
-  initializeMapModule();
+
+  // ✅ Kakao SDK가 로드된 후 지도 초기화
+  kakao.maps.load(() => initializeMapModule());
 });
 
 function initializeMapModule() {
-  const map = new kakao.maps.Map(document.getElementById("map"), {
-    center: new kakao.maps.LatLng(37.5665, 126.9780),
-    level: 5,
-  });
-  window.activeMap = map;
-  renderVworldPolygons(map);
-  setupMapControls(map);
+  try {
+    const mapContainer = document.getElementById("map");
+    const mapOption = {
+      center: new kakao.maps.LatLng(37.5665, 126.9780),
+      level: 5,
+    };
+    const map = new kakao.maps.Map(mapContainer, mapOption);
+    window.activeMap = map;
+
+    // 지도 로드 이후 호출
+    renderVworldPolygons(map);
+    setupMapControls(map);
+  } catch (err) {
+    console.error("지도 초기화 실패:", err);
+  }
 }
