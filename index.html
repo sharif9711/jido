@@ -1,100 +1,60 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Marker3 KakaoMap Dashboard</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marker3 KakaoMap v1.8.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #map { width: 100%; height: calc(100vh - 110px); }
+    .capsule-label {
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.4);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      font-size: 12px;
+      color: #000;
+      text-shadow: 0 0 2px rgba(255,255,255,0.7);
+    }
+  </style>
+</head>
 
-    <!-- ✅ Kakao 지도 SDK -->
-    <script
-      type="text/javascript"
-      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"
-    ></script>
+<body class="bg-gray-100">
+  <!-- 헤더 -->
+  <header class="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
+    <button onclick="history.back()" class="text-2xl font-bold hover:text-gray-200">←</button>
+    <div id="projectTitle" class="text-lg font-semibold">프로젝트</div>
+    <button id="mapBtn" class="bg-white text-blue-600 font-semibold px-3 py-1 rounded shadow hover:bg-blue-50">지도</button>
+  </header>
 
-    <style>
-      html,
-      body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-      }
-      #map {
-        width: 100%;
-        height: calc(100vh - 64px);
-      }
-      .mapTypeControl {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 6px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      }
-      .mapTypeControl button {
-        display: block;
-        width: 80px;
-        padding: 6px 0;
-        border: none;
-        cursor: pointer;
-        font-size: 13px;
-        background: none;
-      }
-      .mapTypeControl button.active {
-        background: #007aff;
-        color: white;
-      }
-    </style>
-  </head>
+  <!-- 탭 메뉴 -->
+  <nav class="flex justify-around border-t border-b bg-white text-sm font-medium text-gray-700">
+    <button id="inputTab" class="flex-1 py-3 hover:bg-gray-100 active:text-blue-600">입력</button>
+    <button id="recordTab" class="flex-1 py-3 hover:bg-gray-100 active:text-blue-600">기록</button>
+    <button id="resultTab" class="flex-1 py-3 hover:bg-gray-100 active:text-blue-600">결과</button>
+  </nav>
 
-  <body class="flex flex-col bg-gray-50">
-    <!-- 상단 헤더 -->
-    <header
-      class="flex justify-between items-center bg-blue-500 text-white px-5 py-3 shadow"
-    >
-      <div class="flex items-center space-x-3">
-        <button
-          onclick="goBack()"
-          class="text-white text-lg font-bold hover:text-gray-200"
-        >
-          ←
-        </button>
-        <h1 id="projectName" class="text-lg font-semibold">프로젝트 이름</h1>
-      </div>
-
-      <button
-        id="mapBtn"
-        onclick="showMap()"
-        class="bg-white text-blue-500 px-3 py-1 rounded shadow"
-      >
-        지도
-      </button>
-    </header>
-
-    <!-- 지도 영역 -->
+  <!-- 지도 영역 -->
+  <main id="mapView" class="relative w-full h-full">
     <div id="map"></div>
 
-    <!-- 지도/스카이뷰 버튼 -->
-    <div class="mapTypeControl" id="mapTypeControl">
-      <button id="btnMap" class="active">지도</button>
-      <button id="btnSky">스카이뷰</button>
+    <!-- 지도 컨트롤 -->
+    <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
+      <button id="toggleNames" class="px-3 py-1 rounded text-white bg-blue-500 shadow hover:bg-blue-600">이름 ON</button>
     </div>
 
-    <script type="module" src="./js/mapMain.js"></script>
+    <div class="absolute top-4 right-4 flex gap-2 z-10">
+      <button id="btnMap" class="px-2 py-1 text-sm rounded bg-blue-500 text-white">지도</button>
+      <button id="btnSky" class="px-2 py-1 text-sm rounded bg-gray-400 text-white">스카이뷰</button>
+      <button id="btnGps" class="px-2 py-1 text-sm rounded bg-blue-500 text-white">GPS</button>
+    </div>
+  </main>
 
-    <script>
-      function goBack() {
-        alert("뒤로가기 기능은 추후 구현 예정");
-      }
-
-      function showMap() {
-        alert("현재 지도 모드입니다.");
-      }
-    </script>
-  </body>
+  <!-- JS -->
+  <script type="module" src="./js/app.js"></script>
+</body>
 </html>
