@@ -1,76 +1,100 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>Marker3 Tailwind v1.6.0</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="css/style.css" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marker3 KakaoMap Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
 
-  <!-- ✅ Kakao 지도 SDK -->
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
-</head>
+    <!-- ✅ Kakao 지도 SDK -->
+    <script
+      type="text/javascript"
+      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"
+    ></script>
 
-<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex flex-col">
-  <!-- 메인 프로젝트 리스트 -->
-  <section id="mainView" class="flex-1 flex flex-col">
-    <header class="bg-blue-600 text-white shadow-md p-4 flex justify-between items-center">
-      <h1 class="text-xl font-semibold">📁 프로젝트 대시보드</h1>
-      <button id="addProjectBtn" class="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-blue-50">
-        + 프로젝트 생성
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      #map {
+        width: 100%;
+        height: calc(100vh - 64px);
+      }
+      .mapTypeControl {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+      .mapTypeControl button {
+        display: block;
+        width: 80px;
+        padding: 6px 0;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        background: none;
+      }
+      .mapTypeControl button.active {
+        background: #007aff;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body class="flex flex-col bg-gray-50">
+    <!-- 상단 헤더 -->
+    <header
+      class="flex justify-between items-center bg-blue-500 text-white px-5 py-3 shadow"
+    >
+      <div class="flex items-center space-x-3">
+        <button
+          onclick="goBack()"
+          class="text-white text-lg font-bold hover:text-gray-200"
+        >
+          ←
+        </button>
+        <h1 id="projectName" class="text-lg font-semibold">프로젝트 이름</h1>
+      </div>
+
+      <button
+        id="mapBtn"
+        onclick="showMap()"
+        class="bg-white text-blue-500 px-3 py-1 rounded shadow"
+      >
+        지도
       </button>
     </header>
-    <main class="flex-1 p-6">
-      <div id="projectList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </main>
-  </section>
 
-  <!-- 상세보기 -->
-  <section id="detailView" class="hidden flex-1 flex-col min-h-screen">
-    <header class="bg-blue-600 text-white shadow-md p-4 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <button id="backBtn" class="text-white text-xl font-bold hover:text-yellow-200">←</button>
-        <h2 id="projectTitle" class="text-lg font-semibold"></h2>
-      </div>
-      <button id="mapBtn" class="bg-white text-blue-600 px-3 py-1 rounded-md font-semibold hover:bg-blue-50">지도</button>
-    </header>
+    <!-- 지도 영역 -->
+    <div id="map"></div>
 
-    <!-- 하단 메뉴 -->
-    <nav class="flex justify-around bg-white border-b shadow-inner py-3">
-      <button id="menuInput" class="text-blue-600 font-semibold hover:text-blue-800">입력</button>
-      <button id="menuLog" class="text-blue-600 font-semibold hover:text-blue-800">기록</button>
-      <button id="menuResult" class="text-blue-600 font-semibold hover:text-blue-800">결과</button>
-    </nav>
-
-    <main id="projectContent" class="flex-1 overflow-auto bg-white"></main>
-  </section>
-
-  <!-- 프로젝트 생성 모달 -->
-  <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-lg p-6 w-80">
-      <h3 class="text-lg font-semibold mb-4">새 프로젝트 생성</h3>
-      <input id="projectName" class="w-full border rounded p-2 mb-2" placeholder="프로젝트 이름" />
-      <input id="contact" class="w-full border rounded p-2 mb-2" placeholder="연락처" />
-      <input id="password" type="password" class="w-full border rounded p-2 mb-4" placeholder="비밀번호" />
-      <div class="flex justify-end gap-2">
-        <button id="cancelBtn" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">취소</button>
-        <button id="okBtn" class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">생성</button>
-      </div>
+    <!-- 지도/스카이뷰 버튼 -->
+    <div class="mapTypeControl" id="mapTypeControl">
+      <button id="btnMap" class="active">지도</button>
+      <button id="btnSky">스카이뷰</button>
     </div>
-  </div>
 
-  <!-- 기존 스크립트 -->
-  <script src="js/view.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/app.js"></script>
+    <script type="module" src="./js/mapMain.js"></script>
 
-  <!-- 지도 모듈 -->
-  <link rel="stylesheet" href="js/map/mapStyle.css" />
-  <script src="js/map/mapMain.js"></script>
-  <script src="js/map/mapUI.js"></script>
-  <script src="js/map/mapPnu.js"></script>
-  <script src="js/map/mapVworld.js"></script>
-  <script src="js/map/mapRoute.js"></script>
-  <script src="js/map/mapInfoPanel.js"></script>
-</body>
+    <script>
+      function goBack() {
+        alert("뒤로가기 기능은 추후 구현 예정");
+      }
+
+      function showMap() {
+        alert("현재 지도 모드입니다.");
+      }
+    </script>
+  </body>
 </html>
