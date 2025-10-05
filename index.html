@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kakao Map 최적경로 v2.1</title>
+    <title>Kakao Map 최적경로 v2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script
       type="text/javascript"
@@ -15,9 +15,7 @@
   <body class="bg-gray-100 text-gray-800">
     <!-- 헤더 -->
     <header class="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
-      <button onclick="showSection('mainSection')" class="text-2xl font-bold">
-        ←
-      </button>
+      <button onclick="showSection('mainSection')" class="text-2xl font-bold">←</button>
       <div id="projectTitle" class="text-lg font-semibold">프로젝트명</div>
       <button
         id="mapBtn"
@@ -36,15 +34,15 @@
 
     <!-- 입력 -->
     <section id="inputSection" class="p-3">
-      <div class="overflow-auto max-h-[70vh] border">
+      <div class="overflow-x-auto overflow-y-scroll max-h-[70vh] border rounded">
         <table class="min-w-full border-collapse text-sm">
           <thead class="bg-gray-200 sticky top-0">
             <tr>
-              <th class="border px-2 py-1">순번</th>
-              <th class="border px-2 py-1">이름</th>
-              <th class="border px-2 py-1">연락처</th>
-              <th class="border px-2 py-1">주소</th>
-              <th class="border px-2 py-1">품목</th>
+              <th class="border px-2 py-1 w-16">순번</th>
+              <th class="border px-2 py-1 w-32">이름</th>
+              <th class="border px-2 py-1 w-40">연락처</th>
+              <th class="border px-2 py-1 w-[400px]">주소</th>
+              <th class="border px-2 py-1 w-48">품목</th>
             </tr>
           </thead>
           <tbody id="inputTable"></tbody>
@@ -54,7 +52,7 @@
 
     <!-- 기록 -->
     <section id="recordSection" class="p-3 hidden">
-      <div class="overflow-auto max-h-[70vh] border">
+      <div class="overflow-x-auto overflow-y-scroll max-h-[70vh] border rounded">
         <table class="min-w-full border-collapse text-sm">
           <thead class="bg-gray-200 sticky top-0">
             <tr>
@@ -79,7 +77,6 @@
     <main id="mapSection" class="hidden relative w-full h-screen">
       <div id="map" class="w-full h-full"></div>
 
-      <!-- 지도 컨트롤 -->
       <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
         <button
           id="toggleNameBtn"
