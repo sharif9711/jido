@@ -1,71 +1,39 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>프로젝트맵</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="./css/style.css" />
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
+  <script src="https://t1.daumcdn.net/mapjsapi/js/main/4.4.19/kakao.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script defer src="./js/app.js"></script>
 </head>
-<body class="bg-gray-50">
-
-  <header class="flex items-center justify-between px-4 py-3 bg-blue-600 text-white shadow">
-    <button id="backBtn" class="text-2xl">←</button>
-    <h1 class="text-lg font-semibold" id="projectTitle">프로젝트명</h1>
+<body class="bg-gray-100">
+  <header class="bg-blue-600 text-white p-4 flex justify-between items-center">
+    <h1 class="text-lg font-semibold">프로젝트명</h1>
     <button id="mapBtn" class="bg-white text-blue-600 px-3 py-1 rounded">지도</button>
   </header>
 
-  <!-- 탭 -->
-  <div class="flex justify-around bg-white border-b text-gray-700">
-    <button id="inputTab" class="py-2 w-1/3 border-b-2 border-blue-600 text-blue-600 font-semibold">입력</button>
-    <button id="recordTab" class="py-2 w-1/3">기록</button>
-    <button id="resultTab" class="py-2 w-1/3">결과</button>
-  </div>
+  <nav class="flex justify-center border-b bg-white">
+    <button id="inputTab" class="px-6 py-3 border-b-2 border-blue-600 text-blue-600 font-semibold">입력</button>
+    <button id="recordTab" class="px-6 py-3 text-gray-600">기록</button>
+    <button id="resultTab" class="px-6 py-3 text-gray-600">결과</button>
+  </nav>
 
-  <!-- 입력 섹션 -->
-  <section id="inputSection" class="p-2 overflow-auto" style="height: calc(100vh - 120px);">
-    <table class="min-w-full text-sm border">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="w-12">순번</th>
-          <th class="w-32">이름</th>
-          <th class="w-40">연락처</th>
-          <th class="w-96">주소</th>
-          <th class="w-40">품목</th>
-        </tr>
-      </thead>
-      <tbody id="inputTableBody"></tbody>
-    </table>
-  </section>
-
-  <!-- 기록 섹션 -->
-  <section id="recordSection" class="hidden p-2 overflow-auto" style="height: calc(100vh - 120px);">
-    <table class="min-w-full text-sm border">
-      <thead class="bg-gray-100">
-        <tr>
-          <th>순번</th><th>이름</th><th>연락처</th><th>주소</th>
-          <th>품목</th><th>상태</th><th>PNU</th><th>지목</th><th>면적</th><th>메모</th>
-        </tr>
-      </thead>
-      <tbody id="recordTableBody"></tbody>
-    </table>
-  </section>
-
-  <!-- 지도 섹션 -->
-  <section id="mapSection" class="hidden relative w-full h-[calc(100vh-56px)]">
-    <div id="map" class="w-full h-full"></div>
-    <div class="absolute left-2 top-16 flex flex-col gap-2">
-      <button id="toggleName" class="bg-blue-600 text-white px-3 py-1 rounded shadow">이름 On</button>
-      <button id="gpsBtn" class="bg-gray-600 text-white px-3 py-1 rounded shadow">GPS Off</button>
-      <button id="routeBtn" class="bg-gray-600 text-white px-3 py-1 rounded shadow">경로 Off</button>
+  <main id="contentArea" class="p-4">
+    <div id="inputArea" class="overflow-y-scroll max-h-[500px] border rounded bg-white shadow">
+      <table id="inputTable" class="min-w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border p-2 w-12">순번</th>
+            <th class="border p-2 w-40">이름</th>
+            <th class="border p-2 w-40">연락처</th>
+            <th class="border p-2 w-64">주소</th>
+            <th class="border p-2 w-40">품목</th>
+          </tr>
+        </thead>
+        <tbody id="inputBody"></tbody>
+      </table>
     </div>
-    <div id="infoBox" class="absolute bottom-0 left-0 w-full bg-white border-t hidden"></div>
-  </section>
-
-  <script type="module" src="./js/dataStore.js"></script>
-  <script type="module" src="./js/ui.js"></script>
-  <script type="module" src="./js/mapMain.js"></script>
-  <script type="module" src="./js/app.js"></script>
-
+  </main>
 </body>
 </html>
