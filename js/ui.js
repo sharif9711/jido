@@ -1,25 +1,17 @@
-// js/ui.js
-
-export function showSection(sectionId) {
+export function showSection(id) {
   const sections = ["inputSection", "recordSection", "mapSection"];
-  sections.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("hidden", id !== sectionId);
+  sections.forEach(sec => {
+    document.getElementById(sec).classList.toggle("hidden", sec !== id);
   });
 
-  // 탭 버튼 상태 동기화
-  const inputTab = document.getElementById("inputTab");
-  const recordTab = document.getElementById("recordTab");
-  const resultTab = document.getElementById("resultTab");
+  const tabs = ["inputTab", "recordTab", "resultTab"];
+  tabs.forEach(tab => {
+    const el = document.getElementById(tab);
+    if (!el) return;
+    el.classList.remove("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
+  });
 
-  [inputTab, recordTab, resultTab].forEach((tab) =>
-    tab.classList.remove("text-blue-600", "font-semibold", "border-b-2", "border-blue-600")
-  );
-
-  if (sectionId === "inputSection")
-    inputTab.classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
-  else if (sectionId === "recordSection")
-    recordTab.classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
-  else if (sectionId === "mapSection")
-    resultTab.classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
+  if (id === "inputSection") document.getElementById("inputTab").classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
+  if (id === "recordSection") document.getElementById("recordTab").classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
+  if (id === "mapSection") document.getElementById("resultTab").classList.add("text-blue-600", "font-semibold", "border-b-2", "border-blue-600");
 }
