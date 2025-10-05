@@ -1,28 +1,45 @@
-export default async function handler(req, res) {
-  try {
-    const { url } = req.query;
-    if (!url) {
-      return res.status(400).json({ error: "Missing URL parameter" });
-    }
+export const config = {
+  runtime: "edge", // ⚡ Edge Function (빠르고 안정적)
+};
 
-    // VWorld API 요청 수행
-    const response = await fetch(url);
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const targetUrl = searchParams.get("url");
+
+  if (!targetUrl) {
+    return new Response(JSON.stringify({ error: "Missing url parameter" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Vercel Proxy)",
+        "Accept-Encoding": "identity", // gzip 오류 방지
+      },
+    });
+
     const text = await response.text();
 
-    // ✅ CORS 허용 헤더 추가
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-    // OPTIONS 요청은 바로 종료
-    if (req.method === "OPTIONS") {
-      return res.status(200).end();
-    }
-
-    // 정상 응답 전달
-    res.status(200).send(text);
+    return new Response(text, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
   } catch (error) {
-    console.error("VWorld Proxy Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Proxy Error:", error);
+    return new Response(
+      JSON.stringify({ error: "Proxy request failed", details: error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
