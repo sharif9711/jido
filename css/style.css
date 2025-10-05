@@ -1,0 +1,36 @@
+.capsule-label {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  border: 1px solid rgba(180, 180, 255, 0.7);
+  box-shadow: 0 2px 6px rgba(120, 120, 255, 0.4);
+  backdrop-filter: blur(6px);
+  color: #333;
+  font-weight: 500;
+}
+.toggle-btn {
+  transition: 0.2s ease;
+}
+.info-window {
+  font-size: 13px;
+  width: 250px;
+  padding: 10px;
+}
+.info-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.info-btn.red {
+  background: #ef4444;
+}
+.info-btn.green {
+  background: #22c55e;
+}
+.info-btn.gray {
+  background: #6b7280;
+}
