@@ -1,17 +1,9 @@
-body {
-  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background-color: rgba(59, 130, 246, 0.4);
-  border-radius: 10px;
-}
-.cell:focus {
-  outline: 2px solid #3b82f6;
-}
-table {
-  border-collapse: collapse;
+#vmap {
+  width: 100%;
+  height: 100%;
 }
