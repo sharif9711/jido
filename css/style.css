@@ -1,0 +1,4 @@
+body { font-family: Pretendard, sans-serif; }
+button { transition: all 0.2s ease; }
+button:hover { opacity: 0.85; }
+input:focus { outline: 2px solid #3b82f6; }
