@@ -1,29 +1,17 @@
-// 프로젝트 생성
-document.getElementById("addProjectBtn").onclick = () =>
-  (document.getElementById("modal").classList.remove("hidden"));
+import { initializeMapModule, updateMapData } from "./mapMain.js";
 
-document.getElementById("cancelBtn").onclick = () =>
-  (document.getElementById("modal").classList.add("hidden"));
+let inputData = [
+  { 순번: 1, 이름: "운남점", 연락처: "010-1111-2222", 주소: "광주 광산구 하남대로 282 금강빌딩 1층", 품목: "커피", 상태: "예정" },
+  { 순번: 2, 이름: "호남대점", 연락처: "010-1111-2222", 주소: "광주 광산구 선암동 779 1층 101호", 품목: "빵", 상태: "예정" },
+  { 순번: 3, 이름: "수완점", 연락처: "010-1111-2222", 주소: "광주 광산구 수완동 1088 103호", 품목: "커피", 상태: "완료" },
+  { 순번: 4, 이름: "전대후문점", 연락처: "010-1111-2222", 주소: "광주 북구 용봉동 161-11", 품목: "커피", 상태: "보류" },
+  { 순번: 5, 이름: "충장로점", 연락처: "010-1111-2222", 주소: "광주 동구 충장로3가 15", 품목: "디저트", 상태: "예정" },
+  { 순번: 6, 이름: "첨단쌍암점", 연락처: "010-1111-2222", 주소: "광주 광산구 쌍암동 694-88", 품목: "커피", 상태: "예정" },
+];
 
-document.getElementById("okBtn").onclick = () => {
-  const name = document.getElementById("projectName").value.trim();
-  const contact = document.getElementById("contact").value.trim();
-  const password = document.getElementById("password").value.trim();
-  if (!name || !contact || !password) return alert("모든 항목을 입력하세요.");
-  const p = {
-    id: crypto.randomUUID(),
-    name, contact, password,
-    createdAt: new Date().toLocaleString("ko-KR"),
-  };
-  window.projects = window.projects || [];
-  window.projects.push(p);
-  localStorage.setItem("projects", JSON.stringify(window.projects));
-  document.getElementById("modal").classList.add("hidden");
-  renderProjects();
+initializeMapModule(inputData);
+
+// 입력 탭 등에서 데이터가 바뀌면 updateMapData 호출
+window.refreshMap = function() {
+  updateMapData(inputData);
 };
-
-// 초기화
-window.addEventListener("load", () => {
-  window.projects = JSON.parse(localStorage.getItem("projects") || "[]");
-  renderProjects();
-});
