@@ -6,8 +6,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputTable = document.getElementById("inputTable");
   const recordTable = document.getElementById("recordTable");
 
-  // 1500행 자동 생성
-  for (let i = 0; i < 1500; i++) dataStore.addRow();
+  // 1500행 자동 생성 (초기 상태값은 null)
+  for (let i = 0; i < 1500; i++) {
+    dataStore.addRow({ 상태: "" });
+  }
 
   const renderInput = () => {
     inputTable.innerHTML = "";
@@ -26,19 +28,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderRecord = () => {
     recordTable.innerHTML = "";
-    dataStore.getAll().forEach((row, i) => {
+    const filled = dataStore.getAll().filter(r => r.이름 || r.주소);
+    filled.forEach((row, i) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td class="border px-2 py-1 text-center">${row.순번}</td>
-        <td class="border px-2 py-1">${row.이름}</td>
-        <td class="border px-2 py-1">${row.연락처}</td>
-        <td class="border px-2 py-1">${row.주소}</td>
-        <td class="border px-2 py-1">${row.품목}</td>
-        <td class="border px-2 py-1">${row.상태}</td>
-        <td class="border px-2 py-1">${row.PNU}</td>
-        <td class="border px-2 py-1">${row.지목}</td>
-        <td class="border px-2 py-1">${row.면적}</td>
-        <td class="border px-2 py-1">${row.메모}</td>
+        <td class="border px-2 py-1">${row.이름 || ""}</td>
+        <td class="border px-2 py-1">${row.연락처 || ""}</td>
+        <td class="border px-2 py-1">${row.주소 || ""}</td>
+        <td class="border px-2 py-1">${row.품목 || ""}</td>
+        <td class="border px-2 py-1">
+          <select onchange="dataStore.update(${i}, '상태', this.value)" class="w-full border-none outline-none">
+            <option value="">선택</option>
+            <option ${row.상태 === "예정" ? "selected" : ""}>예정</option>
+            <option ${row.상태 === "완료" ? "selected" : ""}>완료</option>
+            <option ${row.상태 === "보류" ? "selected" : ""}>보류</option>
+          </select>
+        </td>
+        <td class="border px-2 py-1">${row.PNU || ""}</td>
+        <td class="border px-2 py-1">${row.지목 || ""}</td>
+        <td class="border px-2 py-1">${row.면적 || ""}</td>
+        <td class="border px-2 py-1"><input value="${row.메모 || ""}" class="w-full border-none outline-none" oninput="dataStore.update(${i}, '메모', this.value)" /></td>
       `;
       recordTable.appendChild(tr);
     });
@@ -49,12 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
   renderInput();
   renderRecord();
 
-  // 붙여넣기 (엑셀)
+  // 엑셀 붙여넣기
   inputTable.addEventListener("paste", (e) => {
     e.preventDefault();
     const text = e.clipboardData.getData("text/plain");
-    const rows = text.split("\n").filter((r) => r.trim() !== "");
-
+    const rows = text.split("\n").filter(r => r.trim());
     rows.forEach((rowText, rowIndex) => {
       const cells = rowText.split("\t");
       cells.forEach((cellText, colIndex) => {
