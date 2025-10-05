@@ -1,45 +1,31 @@
-export const config = {
-  runtime: "edge", // ⚡ Edge Function (빠르고 안정적)
-};
+export default async function handler(req, res) {
+  const { url } = req.query;
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const targetUrl = searchParams.get("url");
-
-  if (!targetUrl) {
-    return new Response(JSON.stringify({ error: "Missing url parameter" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (!url) {
+    return res.status(400).json({ error: "Missing URL parameter" });
   }
 
   try {
-    const response = await fetch(targetUrl, {
+    const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Vercel Proxy)",
-        "Accept-Encoding": "identity", // gzip 오류 방지
+        "User-Agent": "Mozilla/5.0 (compatible; Vercel-Proxy)",
+        "Accept": "application/json",
       },
     });
 
-    const text = await response.text();
+    const body = await response.text();
 
-    return new Response(text, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") return res.status(200).end();
+
+    res.status(200).send(body);
   } catch (error) {
-    console.error("Proxy Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Proxy request failed", details: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    console.error("VWorld proxy error:", error);
+    res
+      .status(500)
+      .json({ error: "Proxy request failed", details: error.message });
   }
 }
