@@ -120,6 +120,7 @@ function getProjectDetailHTML() {
                                     <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">이름</th>
                                     <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">연락처</th>
                                     <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">주소</th>
+                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">상태</th>
                                 </tr>
                             </thead>
                             <tbody id="dataInputTable"></tbody>

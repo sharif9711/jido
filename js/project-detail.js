@@ -1,110 +1,90 @@
-// 프로젝트 상세 화면 관련 함수
+// 데이터 관리
+var projects = [];
+var currentProject = null;
+var selectedProjectId = null;
 
-function showProjectDetail() {
-    document.getElementById('projectListScreen').classList.remove('active');
-    document.getElementById('projectDetailScreen').classList.add('active');
-    document.getElementById('currentProjectName').textContent = currentProject.projectName;
-    switchTab('자료입력');
-    renderDataInputTable();
-    renderReportTable();
-    updateMapCount();
+// 500행 초기 데이터 생성
+function createInitialData() {
+    const initialData = [];
+    for (let i = 0; i < 500; i++) {
+        initialData.push({
+            id: Date.now() + '_' + i,
+            순번: i + 1,
+            이름: '',
+            연락처: '',
+            주소: '',
+            상태: '예정',
+            법정동코드: '',
+            pnu코드: '',
+            지목: '',
+            면적: '',
+            기록사항: ''
+        });
+    }
+    return initialData;
 }
 
-function backToList() {
-    document.getElementById('projectDetailScreen').classList.remove('active');
-    document.getElementById('projectListScreen').classList.add('active');
-    currentProject = null;
+// 프로젝트 생성
+function createProjectData(name, contact, password) {
+    return {
+        id: Date.now().toString(),
+        projectName: name,
+        contact: contact,
+        password: password,
+        createdAt: new Date(),
+        data: createInitialData()
+    };
 }
 
-function switchTab(tabName) {
-    const tabs = ['자료입력', '보고서', '지도', '연결'];
-    tabs.forEach(tab => {
-        const tabBtn = document.getElementById('tab-' + tab);
-        const content = document.getElementById('content-' + tab);
-        
-        if (tabBtn && content) {
-            if (tab === tabName) {
-                tabBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-                tabBtn.classList.remove('text-slate-600', 'hover:text-slate-900');
-                content.style.display = 'block';
-            } else {
-                tabBtn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-                tabBtn.classList.add('text-slate-600', 'hover:text-slate-900');
-                content.style.display = 'none';
-            }
+// 셀 업데이트
+function updateCell(rowId, field, value) {
+    const row = currentProject.data.find(r => r.id === rowId);
+    if (row) {
+        row[field] = value;
+        const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+        if (projectIndex !== -1) {
+            projects[projectIndex] = currentProject;
+        }
+        return true;
+    }
+    return false;
+}
+
+// 붙여넣기 처리
+function processPasteData(pastedText, rowIndex, field) {
+    const rows = pastedText.split('\n').filter(row => row.trim() !== '');
+    const fields = ['이름', '연락처', '주소'];
+    const startFieldIndex = fields.indexOf(field);
+    
+    rows.forEach((row, i) => {
+        const targetIndex = rowIndex + i;
+        if (targetIndex < currentProject.data.length) {
+            const cells = row.split('\t');
+            const targetRow = currentProject.data[targetIndex];
+            
+            cells.forEach((cell, cellIndex) => {
+                const targetField = fields[startFieldIndex + cellIndex];
+                if (targetField) {
+                    targetRow[targetField] = cell.trim();
+                }
+            });
         }
     });
-}
 
-function renderDataInputTable() {
-    const tbody = document.getElementById('dataInputTable');
-    if (!tbody) return;
-    
-    tbody.innerHTML = currentProject.data.map((row, index) => `
-        <tr class="hover:bg-slate-50">
-            <td class="border border-slate-300 px-4 py-2 text-center text-sm">${row.순번}</td>
-            <td class="border border-slate-300 px-2 py-1">
-                <input type="text" value="${row.이름}" 
-                    onchange="updateCellAndRefresh('${row.id}', '이름', this.value)"
-                    onpaste="handlePaste(event, ${index}, '이름')"
-                    class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-            </td>
-            <td class="border border-slate-300 px-2 py-1">
-                <input type="text" value="${row.연락처}"
-                    onchange="updateCellAndRefresh('${row.id}', '연락처', this.value)"
-                    onpaste="handlePaste(event, ${index}, '연락처')"
-                    class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-            </td>
-            <td class="border border-slate-300 px-2 py-1">
-                <input type="text" value="${row.주소}"
-                    onchange="updateCellAndRefresh('${row.id}', '주소', this.value)"
-                    onpaste="handlePaste(event, ${index}, '주소')"
-                    class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-            </td>
-        </tr>
-    `).join('');
-}
-
-function renderReportTable() {
-    const tbody = document.getElementById('reportTable');
-    if (!tbody) return;
-    
-    tbody.innerHTML = currentProject.data.map(row => `
-        <tr class="hover:bg-slate-50">
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.상태 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.기록사항 || '-'}</td>
-        </tr>
-    `).join('');
-}
-
-function updateMapCount() {
-    const mapCount = document.getElementById('mapAddressCount');
-    if (!mapCount) return;
-    
-    const count = currentProject.data.filter(row => row.주소).length;
-    mapCount.textContent = `총 ${count}개의 주소`;
-}
-
-function updateCellAndRefresh(rowId, field, value) {
-    if (updateCell(rowId, field, value)) {
-        renderReportTable();
-        updateMapCount();
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
     }
 }
 
-function handlePaste(event, rowIndex, field) {
-    event.preventDefault();
-    const pastedText = event.clipboardData.getData('text');
-    processPasteData(pastedText, rowIndex, field);
-    renderDataInputTable();
-    renderReportTable();
-    updateMapCount();
+// 날짜 포맷
+function formatDate(date) {
+    const d = new Date(date);
+    return new Intl.DateTimeFormat('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(d);
 }
