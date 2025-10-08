@@ -153,18 +153,8 @@ function getProjectDetailHTML() {
             </div>
             <div id="content-지도" class="tab-content" style="display: none;">
                 <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-bold text-slate-900 mb-4">지도 (VWorld 연동)</h2>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg h-96 flex items-center justify-center">
-                        <div class="text-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-slate-400 mx-auto mb-3">
-                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            <p class="text-slate-600 font-medium">VWorld 지도 기능</p>
-                            <p class="text-sm text-slate-500 mt-2">입력된 주소를 기반으로 지도에 마커를 표시합니다</p>
-                            <p id="mapAddressCount" class="text-xs text-slate-400 mt-4">총 0개의 주소</p>
-                        </div>
-                    </div>
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">지도</h2>
+                    <div id="vworldMap" style="width:100%; height:600px; border: 1px solid #ddd;"></div>
                 </div>
             </div>
             <div id="content-연결" class="tab-content" style="display: none;">
