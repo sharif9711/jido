@@ -55,21 +55,19 @@ function getProjectDetailHTML() {
         <header class="border-b border-slate-300/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
             <div class="container mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
-                                <line x1="9" y1="3" x2="9" y2="18"></line>
-                                <line x1="15" y1="6" x2="15" y2="21"></line>
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 id="currentProjectName" class="text-xl font-bold text-slate-900"></h1>
-                            <p id="currentProjectContact" class="text-xs text-slate-600"></p>
-                        </div>
-                    </div>
-                    <button onclick="backToList()" class="px-4 py-2 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-                        프로젝트 목록으로
+                    <button onclick="backToList()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="프로젝트 목록으로">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h1 id="currentProjectName" class="text-xl font-bold text-slate-900 absolute left-1/2 transform -translate-x-1/2"></h1>
+                    <button onclick="switchTab('지도')" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        지도
                     </button>
                 </div>
             </div>
@@ -97,12 +95,12 @@ function getProjectDetailHTML() {
                         </svg>
                         보고서
                     </button>
-                    <button onclick="switchTab('지도')" id="tab-지도" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                    <button onclick="switchTab('연결')" id="tab-연결" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                         </svg>
-                        지도
+                        연결
                     </button>
                 </div>
             </div>
@@ -165,6 +163,21 @@ function getProjectDetailHTML() {
                             <p class="text-slate-600 font-medium">VWorld 지도 기능</p>
                             <p class="text-sm text-slate-500 mt-2">입력된 주소를 기반으로 지도에 마커를 표시합니다</p>
                             <p id="mapAddressCount" class="text-xs text-slate-400 mt-4">총 0개의 주소</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="content-연결" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">연결</h2>
+                    <div class="border-2 border-dashed border-slate-300 rounded-lg h-96 flex items-center justify-center">
+                        <div class="text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-slate-400 mx-auto mb-3">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            <p class="text-slate-600 font-medium">연결 기능</p>
+                            <p class="text-sm text-slate-500 mt-2">외부 시스템과의 연결을 관리합니다</p>
                         </div>
                     </div>
                 </div>

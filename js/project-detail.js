@@ -4,7 +4,6 @@ function showProjectDetail() {
     document.getElementById('projectListScreen').classList.remove('active');
     document.getElementById('projectDetailScreen').classList.add('active');
     document.getElementById('currentProjectName').textContent = currentProject.projectName;
-    document.getElementById('currentProjectContact').textContent = currentProject.contact;
     switchTab('자료입력');
     renderDataInputTable();
     renderReportTable();
@@ -18,7 +17,7 @@ function backToList() {
 }
 
 function switchTab(tabName) {
-    const tabs = ['자료입력', '보고서', '지도'];
+    const tabs = ['자료입력', '보고서', '지도', '연결'];
     tabs.forEach(tab => {
         const tabBtn = document.getElementById('tab-' + tab);
         const content = document.getElementById('content-' + tab);
