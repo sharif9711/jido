@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>프로젝트맵</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
+</head>
+
+<body class="bg-gray-100">
+  <header class="bg-blue-600 text-white py-3 flex justify-between items-center px-4">
+    <button id="backBtn" class="text-2xl">←</button>
+    <h1 id="projectTitle" class="text-lg font-semibold">프로젝트명</h1>
+    <button id="mapBtn" class="bg-white text-blue-600 px-3 py-1 rounded">지도</button>
+  </header>
+
+  <nav class="flex justify-around bg-white border-b">
+    <button class="tab-btn active" data-tab="input">입력</button>
+    <button class="tab-btn" data-tab="record">기록</button>
+    <button class="tab-btn" data-tab="result">결과</button>
+  </nav>
+
+  <main class="p-2">
+    <!-- 입력 탭 -->
+    <section id="input" class="tab-content active">
+      <div class="overflow-auto max-h-[500px]">
+        <table class="w-full border text-sm bg-white">
+          <thead class="bg-gray-200 sticky top-0">
+            <tr>
+              <th class="p-1">순번</th>
+              <th class="p-1">이름</th>
+              <th class="p-1">연락처</th>
+              <th class="p-1">주소</th>
+              <th class="p-1">품목</th>
+            </tr>
+          </thead>
+          <tbody id="inputTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 기록 탭 -->
+    <section id="record" class="tab-content hidden">
+      <div class="overflow-auto max-h-[500px]">
+        <table class="w-full border text-sm bg-white">
+          <thead class="bg-gray-200 sticky top-0">
+            <tr>
+              <th>순번</th><th>이름</th><th>연락처</th><th>주소</th>
+              <th>품목</th><th>상태</th><th>PNU</th><th>지목</th><th>면적</th><th>메모</th>
+            </tr>
+          </thead>
+          <tbody id="recordTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 결과 탭 -->
+    <section id="result" class="tab-content hidden">
+      <div class="text-gray-600 text-center mt-10">결과 데이터는 추후 연결됩니다.</div>
+    </section>
+
+    <!-- 지도 섹션 -->
+    <section id="mapSection" class="hidden relative">
+      <div id="map" class="w-full h-[85vh]"></div>
+
+      <div class="absolute left-3 top-16 space-y-2">
+        <button id="toggleName" class="map-btn">이름 On</button>
+        <button id="toggleGPS" class="map-btn">GPS On</button>
+        <button id="toggleRoute" class="map-btn">경로 On</button>
+      </div>
+
+      <div id="infoPanel" class="info-panel hidden"></div>
+    </section>
+  </main>
+
+  <script src="js/dataStore.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/mapMain.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
