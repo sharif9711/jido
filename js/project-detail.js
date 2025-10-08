@@ -22,20 +22,24 @@ function switchTab(tabName) {
         const tabBtn = document.getElementById('tab-' + tab);
         const content = document.getElementById('content-' + tab);
         
-        if (tab === tabName) {
-            tabBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            tabBtn.classList.remove('text-slate-600', 'hover:text-slate-900');
-            content.style.display = 'block';
-        } else {
-            tabBtn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            tabBtn.classList.add('text-slate-600', 'hover:text-slate-900');
-            content.style.display = 'none';
+        if (tabBtn && content) {
+            if (tab === tabName) {
+                tabBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                tabBtn.classList.remove('text-slate-600', 'hover:text-slate-900');
+                content.style.display = 'block';
+            } else {
+                tabBtn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                tabBtn.classList.add('text-slate-600', 'hover:text-slate-900');
+                content.style.display = 'none';
+            }
         }
     });
 }
 
 function renderDataInputTable() {
     const tbody = document.getElementById('dataInputTable');
+    if (!tbody) return;
+    
     tbody.innerHTML = currentProject.data.map((row, index) => `
         <tr class="hover:bg-slate-50">
             <td class="border border-slate-300 px-4 py-2 text-center text-sm">${row.순번}</td>
@@ -63,6 +67,8 @@ function renderDataInputTable() {
 
 function renderReportTable() {
     const tbody = document.getElementById('reportTable');
+    if (!tbody) return;
+    
     tbody.innerHTML = currentProject.data.map(row => `
         <tr class="hover:bg-slate-50">
             <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
@@ -80,8 +86,11 @@ function renderReportTable() {
 }
 
 function updateMapCount() {
+    const mapCount = document.getElementById('mapAddressCount');
+    if (!mapCount) return;
+    
     const count = currentProject.data.filter(row => row.주소).length;
-    document.getElementById('mapAddressCount').textContent = `총 ${count}개의 주소`;
+    mapCount.textContent = `총 ${count}개의 주소`;
 }
 
 function updateCellAndRefresh(rowId, field, value) {
