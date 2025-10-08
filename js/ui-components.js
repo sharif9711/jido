@@ -182,7 +182,7 @@ function getProjectDetailHTML() {
                             </svg>
                         </button>
                         <h1 class="text-xl font-bold text-slate-900">지도</h1>
-                        <button onclick="displayProjectOnKakaoMap(currentProject.data)" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors">
+                        <button onclick="if(currentProject && currentProject.data) { displayProjectOnKakaoMap(currentProject.data); } else { alert('프로젝트 데이터가 없습니다.'); }" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors">
                             주소 표시
                         </button>
                     </div>
