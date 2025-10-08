@@ -155,12 +155,12 @@ function getProjectDetailHTML() {
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-slate-900">지도</h2>
-                        <button onclick="displayProjectOnMap(currentProject.data)" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors text-sm font-medium">
+                        <button onclick="displayProjectOnKakaoMap(currentProject.data)" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors text-sm font-medium">
                             주소 지도에 표시
                         </button>
                     </div>
                     <div id="mapLoadingStatus" class="mb-2 text-sm text-slate-600" style="display: none;"></div>
-                    <div id="vworldMap" style="width:100%; height:600px; border: 1px solid #ddd; border-radius: 8px;"></div>
+                    <div id="kakaoMap" style="width:100%; height:600px; border: 1px solid #ddd; border-radius: 8px;"></div>
                     <div class="mt-4 flex gap-4 text-sm">
                         <div class="flex items-center gap-2">
                             <div class="w-3 h-3 rounded-full bg-blue-500"></div>
