@@ -88,3 +88,14 @@ function formatDate(date) {
         minute: '2-digit'
     }).format(d);
 }
+
+// 프로젝트 삭제
+function deleteProject(projectId) {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    if (confirm(`"${project.projectName}" 프로젝트를 삭제하시겠습니까?\n\n삭제된 프로젝트는 복구할 수 없습니다.`)) {
+        projects = projects.filter(p => p.id !== projectId);
+        renderProjects();
+    }
+}
