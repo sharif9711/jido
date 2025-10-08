@@ -52,147 +52,161 @@ function getProjectListHTML() {
 
 function getProjectDetailHTML() {
     return `
-        <header class="border-b border-slate-300/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-            <div class="container mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <button onclick="backToList()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="프로젝트 목록으로">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="19" y1="12" x2="5" y2="12"></line>
-                            <polyline points="12 19 5 12 12 5"></polyline>
-                        </svg>
-                    </button>
-                    <h1 id="currentProjectName" class="text-xl font-bold text-slate-900 absolute left-1/2 transform -translate-x-1/2"></h1>
-                    <button onclick="switchTab('지도')" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        지도
-                    </button>
-                </div>
-            </div>
-        </header>
-        <div class="bg-white border-b border-slate-200">
-            <div class="container mx-auto px-4">
-                <div class="flex gap-1">
-                    <button onclick="switchTab('자료입력')" id="tab-자료입력" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-blue-600 border-b-2 border-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        자료입력
-                    </button>
-                    <button onclick="switchTab('보고서')" id="tab-보고서" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <line x1="12" y1="9" x2="8" y2="9"></line>
-                        </svg>
-                        보고서
-                    </button>
-                    <button onclick="switchTab('연결')" id="tab-연결" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                        </svg>
-                        연결
-                    </button>
-                </div>
-            </div>
-        </div>
-        <main class="container mx-auto px-4 py-6">
-            <div id="content-자료입력" class="tab-content">
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-900">자료 입력</h2>
-                        <span class="text-sm text-slate-600">총 500행</span>
-                    </div>
-                    <div class="overflow-auto" style="max-height: 600px;">
-                        <table class="w-full border-collapse">
-                            <thead class="sticky top-0 bg-slate-100 z-10">
-                                <tr>
-                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">순번</th>
-                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">이름</th>
-                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">연락처</th>
-                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">주소</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dataInputTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div id="content-보고서" class="tab-content" style="display: none;">
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-bold text-slate-900 mb-4">보고서</h2>
-                    <div class="overflow-auto" style="max-height: 600px;">
-                        <table class="w-full border-collapse text-sm">
-                            <thead class="sticky top-0 bg-slate-100 z-10">
-                                <tr>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">순번</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">이름</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">연락처</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">주소</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">상태</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">법정동코드</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">PNU코드</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">지목</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">면적</th>
-                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">기록사항</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div id="content-지도" class="tab-content" style="display: none;">
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-900">지도</h2>
-                        <button onclick="displayProjectOnKakaoMap(currentProject.data)" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors text-sm font-medium">
-                            주소 지도에 표시
+        <div id="normalView">
+            <header class="border-b border-slate-300/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+                <div class="container mx-auto px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <button onclick="backToList()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="프로젝트 목록으로">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                        </button>
+                        <h1 id="currentProjectName" class="text-xl font-bold text-slate-900 absolute left-1/2 transform -translate-x-1/2"></h1>
+                        <button onclick="showMapView()" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            지도
                         </button>
                     </div>
-                    <div id="mapLoadingStatus" class="mb-2 text-sm text-slate-600" style="display: none;"></div>
-                    <div id="kakaoMap" style="width:100%; height:600px; border: 1px solid #ddd; border-radius: 8px;"></div>
-                    <div class="mt-4 flex gap-4 text-sm">
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <span class="text-slate-600">예정</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span class="text-slate-600">완료</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                            <span class="text-slate-600">보류</span>
-                        </div>
-                    </div>
                 </div>
-            </div>
-            <div id="content-연결" class="tab-content" style="display: none;">
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-bold text-slate-900 mb-4">연결</h2>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg h-96 flex items-center justify-center">
-                        <div class="text-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-slate-400 mx-auto mb-3">
+            </header>
+            <div class="bg-white border-b border-slate-200">
+                <div class="container mx-auto px-4">
+                    <div class="flex gap-1">
+                        <button onclick="switchTab('자료입력')" id="tab-자료입력" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-blue-600 border-b-2 border-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            자료입력
+                        </button>
+                        <button onclick="switchTab('보고서')" id="tab-보고서" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <line x1="12" y1="9" x2="8" y2="9"></line>
+                            </svg>
+                            보고서
+                        </button>
+                        <button onclick="switchTab('연결')" id="tab-연결" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                             </svg>
-                            <p class="text-slate-600 font-medium">연결 기능</p>
-                            <p class="text-sm text-slate-500 mt-2">외부 시스템과의 연결을 관리합니다</p>
-                        </div>
+                            연결
+                        </button>
                     </div>
                 </div>
             </div>
-        </main>
+            <main class="container mx-auto px-4 py-6">
+                <div id="content-자료입력" class="tab-content">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-900">자료 입력</h2>
+                            <span class="text-sm text-slate-600">총 500행</span>
+                        </div>
+                        <div class="overflow-auto" style="max-height: 600px;">
+                            <table class="w-full border-collapse">
+                                <thead class="sticky top-0 bg-slate-100 z-10">
+                                    <tr>
+                                        <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">순번</th>
+                                        <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">이름</th>
+                                        <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">연락처</th>
+                                        <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">주소</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataInputTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="content-보고서" class="tab-content" style="display: none;">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h2 class="text-lg font-bold text-slate-900 mb-4">보고서</h2>
+                        <div class="overflow-auto" style="max-height: 600px;">
+                            <table class="w-full border-collapse text-sm">
+                                <thead class="sticky top-0 bg-slate-100 z-10">
+                                    <tr>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">순번</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">이름</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">연락처</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">주소</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">상태</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">법정동코드</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">PNU코드</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">지목</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">면적</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">기록사항</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="content-연결" class="tab-content" style="display: none;">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h2 class="text-lg font-bold text-slate-900 mb-4">연결</h2>
+                        <div class="border-2 border-dashed border-slate-300 rounded-lg h-96 flex items-center justify-center">
+                            <div class="text-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-slate-400 mx-auto mb-3">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                                <p class="text-slate-600 font-medium">연결 기능</p>
+                                <p class="text-sm text-slate-500 mt-2">외부 시스템과의 연결을 관리합니다</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 지도 뷰 -->
+        <div id="mapView" style="display: none;">
+            <header class="border-b border-slate-300/50 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
+                <div class="container mx-auto px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <button onclick="hideMapView()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="돌아가기">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                        </button>
+                        <h1 class="text-xl font-bold text-slate-900">지도</h1>
+                        <button onclick="displayProjectOnKakaoMap(currentProject.data)" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors">
+                            주소 표시
+                        </button>
+                    </div>
+                </div>
+            </header>
+            <div style="height: calc(100vh - 140px);" class="flex flex-col">
+                <div id="mapLoadingStatus" class="px-4 py-2 text-sm text-slate-600 bg-white border-b border-slate-200" style="display: none;"></div>
+                <div id="kakaoMap" class="flex-1"></div>
+                <div class="bg-white border-t border-slate-200 px-4 py-3 flex gap-6">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span class="text-sm text-slate-700">예정</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="text-sm text-slate-700">완료</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                        <span class="text-sm text-slate-700">보류</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 
