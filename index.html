@@ -1,83 +1,568 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>프로젝트맵</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=8076943fb980909891f021720b7527a2&libraries=services"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지도 프로젝트 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        .modal {
+            display: none;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+    </style>
 </head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
+    <!-- 두번째 화면: 프로젝트 목록 -->
+    <div id="projectListScreen" class="screen active">
+        <header class="border-b border-slate-300/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                            <line x1="9" y1="3" x2="9" y2="18"></line>
+                            <line x1="15" y1="6" x2="15" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        지도 프로젝트 관리
+                    </h1>
+                </div>
+            </div>
+        </header>
 
-<body class="bg-gray-100">
-  <header class="bg-blue-600 text-white py-3 flex justify-between items-center px-4">
-    <button id="backBtn" class="text-2xl">←</button>
-    <h1 id="projectTitle" class="text-lg font-semibold">프로젝트명</h1>
-    <button id="mapBtn" class="bg-white text-blue-600 px-3 py-1 rounded">지도</button>
-  </header>
+        <main class="container mx-auto px-4 py-12">
+            <div class="max-w-6xl mx-auto space-y-12">
+                <div class="flex flex-col items-center gap-4 text-center">
+                    <button onclick="openCreateModal()" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl">
+                        + 새 프로젝트 만들기
+                    </button>
+                    <p class="text-slate-600">새로운 지도 프로젝트를 시작하세요</p>
+                </div>
 
-  <nav class="flex justify-around bg-white border-b">
-    <button class="tab-btn active" data-tab="input">입력</button>
-    <button class="tab-btn" data-tab="record">기록</button>
-    <button class="tab-btn" data-tab="result">결과</button>
-  </nav>
+                <div id="projectsContainer">
+                    <div id="emptyState" class="flex flex-col items-center justify-center py-20 text-center">
+                        <div class="p-6 rounded-full bg-slate-200/50 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400">
+                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                                <line x1="9" y1="3" x2="9" y2="18"></line>
+                                <line x1="15" y1="6" x2="15" y2="21"></line>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-slate-900 mb-2">아직 프로젝트가 없습니다</h3>
+                        <p class="text-slate-600 max-w-md">첫 번째 프로젝트를 만들어서 지도 작업을 시작해보세요</p>
+                    </div>
 
-  <main class="p-2">
-    <!-- 입력 탭 -->
-    <section id="input" class="tab-content active">
-      <div class="overflow-auto max-h-[500px]">
-        <table class="w-full border text-sm bg-white">
-          <thead class="bg-gray-200 sticky top-0">
-            <tr>
-              <th class="p-1">순번</th>
-              <th class="p-1">이름</th>
-              <th class="p-1">연락처</th>
-              <th class="p-1">주소</th>
-              <th class="p-1">품목</th>
-            </tr>
-          </thead>
-          <tbody id="inputTableBody"></tbody>
-        </table>
-      </div>
-    </section>
+                    <div id="projectsList" style="display: none;">
+                        <h2 class="text-xl font-semibold mb-6 text-slate-900">
+                            프로젝트 목록 (<span id="projectCount">0</span>)
+                        </h2>
+                        <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-    <!-- 기록 탭 -->
-    <section id="record" class="tab-content hidden">
-      <div class="overflow-auto max-h-[500px]">
-        <table class="w-full border text-sm bg-white">
-          <thead class="bg-gray-200 sticky top-0">
-            <tr>
-              <th>순번</th><th>이름</th><th>연락처</th><th>주소</th>
-              <th>품목</th><th>상태</th><th>PNU</th><th>지목</th><th>면적</th><th>메모</th>
-            </tr>
-          </thead>
-          <tbody id="recordTableBody"></tbody>
-        </table>
-      </div>
-    </section>
+    <!-- 네번째 화면: 프로젝트 내부 -->
+    <div id="projectDetailScreen" class="screen">
+        <header class="border-b border-slate-300/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                                <line x1="9" y1="3" x2="9" y2="18"></line>
+                                <line x1="15" y1="6" x2="15" y2="21"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 id="currentProjectName" class="text-xl font-bold text-slate-900"></h1>
+                            <p id="currentProjectContact" class="text-xs text-slate-600"></p>
+                        </div>
+                    </div>
+                    <button onclick="backToList()" class="px-4 py-2 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                        프로젝트 목록으로
+                    </button>
+                </div>
+            </div>
+        </header>
 
-    <!-- 결과 탭 -->
-    <section id="result" class="tab-content hidden">
-      <div class="text-gray-600 text-center mt-10">결과 데이터는 추후 연결됩니다.</div>
-    </section>
+        <div class="bg-white border-b border-slate-200">
+            <div class="container mx-auto px-4">
+                <div class="flex gap-1">
+                    <button onclick="switchTab('자료입력')" id="tab-자료입력" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-blue-600 border-b-2 border-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        자료입력
+                    </button>
+                    <button onclick="switchTab('보고서')" id="tab-보고서" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <line x1="12" y1="9" x2="8" y2="9"></line>
+                        </svg>
+                        보고서
+                    </button>
+                    <button onclick="switchTab('지도')" id="tab-지도" class="px-6 py-3 font-medium transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        지도
+                    </button>
+                </div>
+            </div>
+        </div>
 
-    <!-- 지도 섹션 -->
-    <section id="mapSection" class="hidden relative">
-      <div id="map" class="w-full h-[85vh]"></div>
+        <main class="container mx-auto px-4 py-6">
+            <!-- 자료입력 탭 -->
+            <div id="content-자료입력" class="tab-content">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-slate-900">자료 입력</h2>
+                        <span class="text-sm text-slate-600">총 500행</span>
+                    </div>
+                    <div class="overflow-auto" style="max-height: 600px;">
+                        <table class="w-full border-collapse">
+                            <thead class="sticky top-0 bg-slate-100 z-10">
+                                <tr>
+                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">순번</th>
+                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">이름</th>
+                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">연락처</th>
+                                    <th class="border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">주소</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataInputTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-      <div class="absolute left-3 top-16 space-y-2">
-        <button id="toggleName" class="map-btn">이름 On</button>
-        <button id="toggleGPS" class="map-btn">GPS On</button>
-        <button id="toggleRoute" class="map-btn">경로 On</button>
-      </div>
+            <!-- 보고서 탭 -->
+            <div id="content-보고서" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">보고서</h2>
+                    <div class="overflow-auto" style="max-height: 600px;">
+                        <table class="w-full border-collapse text-sm">
+                            <thead class="sticky top-0 bg-slate-100 z-10">
+                                <tr>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">순번</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">이름</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">연락처</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">주소</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">상태</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">법정동코드</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">PNU코드</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">지목</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">면적</th>
+                                    <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">기록사항</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-      <div id="infoPanel" class="info-panel hidden"></div>
-    </section>
-  </main>
+            <!-- 지도 탭 -->
+            <div id="content-지도" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">지도 (VWorld 연동)</h2>
+                    <div class="border-2 border-dashed border-slate-300 rounded-lg h-96 flex items-center justify-center">
+                        <div class="text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-slate-400 mx-auto mb-3">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <p class="text-slate-600 font-medium">VWorld 지도 기능</p>
+                            <p class="text-sm text-slate-500 mt-2">입력된 주소를 기반으로 지도에 마커를 표시합니다</p>
+                            <p id="mapAddressCount" class="text-xs text-slate-400 mt-4">총 0개의 주소</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-  <script src="js/dataStore.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/mapMain.js"></script>
-  <script src="js/app.js"></script>
+    <!-- 첫번째 화면: 프로젝트 생성 모달 -->
+    <div id="createModal" class="modal fixed inset-0 bg-black/50 items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-bold text-slate-900">새 프로젝트 만들기</h2>
+                    <button onclick="closeCreateModal()" class="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-slate-600 mb-6">프로젝트 정보를 입력하고 완료 버튼을 클릭하세요.</p>
+                
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-700">프로젝트 이름</label>
+                        <input type="text" id="projectName" placeholder="프로젝트 이름을 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-700">연락처</label>
+                        <input type="tel" id="projectContact" placeholder="연락처를 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-700">비밀번호</label>
+                        <input type="password" id="projectPassword" placeholder="비밀번호를 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="closeCreateModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors">취소</button>
+                        <button onclick="createProject()" class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition-colors">완료</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 세번째 화면: 비밀번호 입력 모달 -->
+    <div id="passwordModal" class="modal fixed inset-0 bg-black/50 items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <h2 class="text-lg font-bold text-slate-900">비밀번호 입력</h2>
+                    </div>
+                    <button onclick="closePasswordModal()" class="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-slate-600 mb-6">
+                    <span id="passwordProjectName" class="font-semibold"></span> 프로젝트에 접속하려면 비밀번호를 입력하세요.
+                </p>
+                
+                <div class="space-y-4">
+                    <input type="password" id="enteredPassword" placeholder="비밀번호" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" onkeypress="if(event.key==='Enter') checkPassword()">
+                    <div class="flex gap-3">
+                        <button onclick="closePasswordModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors">취소</button>
+                        <button onclick="checkPassword()" class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-md hover:from-amber-600 hover:to-amber-700 transition-colors">확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let currentProject = null;
+        let selectedProjectId = null;
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('projectName').value = '';
+            document.getElementById('projectContact').value = '';
+            document.getElementById('projectPassword').value = '';
+        }
+
+        function createProject() {
+            const name = document.getElementById('projectName').value;
+            const contact = document.getElementById('projectContact').value;
+            const password = document.getElementById('projectPassword').value;
+
+            if (!name || !contact || !password) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            const initialData = [];
+            for (let i = 0; i < 500; i++) {
+                initialData.push({
+                    id: Date.now() + '_' + i,
+                    순번: i + 1,
+                    이름: '',
+                    연락처: '',
+                    주소: '',
+                    상태: '',
+                    법정동코드: '',
+                    pnu코드: '',
+                    지목: '',
+                    면적: '',
+                    기록사항: ''
+                });
+            }
+
+            const project = {
+                id: Date.now().toString(),
+                projectName: name,
+                contact: contact,
+                password: password,
+                createdAt: new Date(),
+                data: initialData
+            };
+
+            projects.unshift(project);
+            closeCreateModal();
+            renderProjects();
+        }
+
+        function renderProjects() {
+            const emptyState = document.getElementById('emptyState');
+            const projectsList = document.getElementById('projectsList');
+            const projectsGrid = document.getElementById('projectsGrid');
+            const projectCount = document.getElementById('projectCount');
+
+            if (projects.length === 0) {
+                emptyState.style.display = 'flex';
+                projectsList.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                projectsList.style.display = 'block';
+                projectCount.textContent = projects.length;
+
+                projectsGrid.innerHTML = projects.map(project => `
+                    <div onclick="openPasswordModal('${project.id}')" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer group hover:-translate-y-1">
+                        <div class="p-6">
+                            <div class="flex items-start justify-between pb-3">
+                                <div class="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                                        <line x1="9" y1="3" x2="9" y2="18"></line>
+                                        <line x1="15" y1="6" x2="15" y2="21"></line>
+                                    </svg>
+                                </div>
+                                <div class="p-2 rounded-lg bg-amber-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-slate-900 line-clamp-1">${project.projectName}</h3>
+                                <div class="space-y-2.5">
+                                    <div class="flex items-center gap-2 text-sm text-slate-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                        </svg>
+                                        <span>${project.contact}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-slate-500 pt-2 border-t border-slate-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>${formatDate(project.createdAt)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function formatDate(date) {
+            const d = new Date(date);
+            return new Intl.DateTimeFormat('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(d);
+        }
+
+        function openPasswordModal(projectId) {
+            selectedProjectId = projectId;
+            const project = projects.find(p => p.id === projectId);
+            document.getElementById('passwordProjectName').textContent = project.projectName;
+            document.getElementById('passwordModal').classList.add('active');
+            document.getElementById('enteredPassword').focus();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            document.getElementById('enteredPassword').value = '';
+            selectedProjectId = null;
+        }
+
+        function checkPassword() {
+            const password = document.getElementById('enteredPassword').value;
+            const project = projects.find(p => p.id === selectedProjectId);
+
+            if (project && password === project.password) {
+                currentProject = project;
+                closePasswordModal();
+                showProjectDetail();
+            } else {
+                alert('비밀번호가 올바르지 않습니다.');
+                document.getElementById('enteredPassword').value = '';
+            }
+        }
+
+        function showProjectDetail() {
+            document.getElementById('projectListScreen').classList.remove('active');
+            document.getElementById('projectDetailScreen').classList.add('active');
+            document.getElementById('currentProjectName').textContent = currentProject.projectName;
+            document.getElementById('currentProjectContact').textContent = currentProject.contact;
+            switchTab('자료입력');
+            renderDataInputTable();
+            renderReportTable();
+            updateMapCount();
+        }
+
+        function backToList() {
+            document.getElementById('projectDetailScreen').classList.remove('active');
+            document.getElementById('projectListScreen').classList.add('active');
+            currentProject = null;
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['자료입력', '보고서', '지도'];
+            tabs.forEach(tab => {
+                const tabBtn = document.getElementById('tab-' + tab);
+                const content = document.getElementById('content-' + tab);
+                
+                if (tab === tabName) {
+                    tabBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                    tabBtn.classList.remove('text-slate-600', 'hover:text-slate-900');
+                    content.style.display = 'block';
+                } else {
+                    tabBtn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    tabBtn.classList.add('text-slate-600', 'hover:text-slate-900');
+                    content.style.display = 'none';
+                }
+            });
+        }
+
+        function renderDataInputTable() {
+            const tbody = document.getElementById('dataInputTable');
+            tbody.innerHTML = currentProject.data.map((row, index) => `
+                <tr class="hover:bg-slate-50">
+                    <td class="border border-slate-300 px-4 py-2 text-center text-sm">${row.순번}</td>
+                    <td class="border border-slate-300 px-2 py-1">
+                        <input type="text" value="${row.이름}" 
+                            onchange="updateCell('${row.id}', '이름', this.value)"
+                            onpaste="handlePaste(event, ${index}, '이름')"
+                            class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                    </td>
+                    <td class="border border-slate-300 px-2 py-1">
+                        <input type="text" value="${row.연락처}"
+                            onchange="updateCell('${row.id}', '연락처', this.value)"
+                            onpaste="handlePaste(event, ${index}, '연락처')"
+                            class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                    </td>
+                    <td class="border border-slate-300 px-2 py-1">
+                        <input type="text" value="${row.주소}"
+                            onchange="updateCell('${row.id}', '주소', this.value)"
+                            onpaste="handlePaste(event, ${index}, '주소')"
+                            class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderReportTable() {
+            const tbody = document.getElementById('reportTable');
+            tbody.innerHTML = currentProject.data.map(row => `
+                <tr class="hover:bg-slate-50">
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
+                    <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
+                    <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
+                    <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.상태 || '-'}</td>
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
+                    <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
+                    <td class="border border-slate-300 px-3 py-2">${row.기록사항 || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateMapCount() {
+            const count = currentProject.data.filter(row => row.주소).length;
+            document.getElementById('mapAddressCount').textContent = `총 ${count}개의 주소`;
+        }
+
+        function updateCell(rowId, field, value) {
+            const row = currentProject.data.find(r => r.id === rowId);
+            if (row) {
+                row[field] = value;
+                const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+                if (projectIndex !== -1) {
+                    projects[projectIndex] = currentProject;
+                }
+                renderReportTable();
+                updateMapCount();
+            }
+        }
+
+        function handlePaste(event, rowIndex, field) {
+            event.preventDefault();
+            const pastedText = event.clipboardData.getData('text');
+            const rows = pastedText.split('\n').filter(row => row.trim() !== '');
+            
+            const fields = ['이름', '연락처', '주소'];
+            const startFieldIndex = fields.indexOf(field);
+            
+            rows.forEach((row, i) => {
+                const targetIndex = rowIndex + i;
+                if (targetIndex < currentProject.data.length) {
+                    const cells = row.split('\t');
+                    const targetRow = currentProject.data[targetIndex];
+                    
+                    cells.forEach((cell, cellIndex) => {
+                        const targetField = fields[startFieldIndex + cellIndex];
+                        if (targetField) {
+                            targetRow[targetField] = cell.trim();
+                        }
+                    });
+                }
+            });
+
+            const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+            if (projectIndex !== -1) {
+                projects[projectIndex] = currentProject;
+            }
+
+            renderDataInputTable();
+            renderReportTable();
+            updateMapCount();
+        }
+
+        // 초기 렌더링
+        renderProjects();
+    </script>
 </body>
 </html>
