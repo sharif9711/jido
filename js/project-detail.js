@@ -66,14 +66,6 @@ function renderDataInputTable() {
                     onpaste="handlePaste(event, ${index}, '주소')"
                     class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
             </td>
-            <td class="border border-slate-300 px-2 py-1">
-                <select onchange="updateCellAndRefresh('${row.id}', '상태', this.value)" 
-                    class="w-full px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${getStatusColor(row.상태)}">
-                    <option value="예정" ${row.상태 === '예정' ? 'selected' : ''}>예정</option>
-                    <option value="완료" ${row.상태 === '완료' ? 'selected' : ''}>완료</option>
-                    <option value="보류" ${row.상태 === '보류' ? 'selected' : ''}>보류</option>
-                </select>
-            </td>
         </tr>
     `).join('');
 }
@@ -91,16 +83,21 @@ function renderReportTable() {
     const tbody = document.getElementById('reportTable');
     if (!tbody) return;
     
-    tbody.innerHTML = currentProject.data.map(row => `
+    tbody.innerHTML = currentProject.data
+        .filter(row => row.이름 || row.연락처 || row.주소) // 입력된 자료만 표시
+        .map(row => `
         <tr class="hover:bg-slate-50">
             <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
             <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
             <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
             <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">
-                <span class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(row.상태)}">
-                    ${row.상태 || '예정'}
-                </span>
+                <select onchange="updateReportStatus('${row.id}', this.value)" 
+                    class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(row.상태)} border-0 cursor-pointer">
+                    <option value="예정" ${row.상태 === '예정' ? 'selected' : ''}>예정</option>
+                    <option value="완료" ${row.상태 === '완료' ? 'selected' : ''}>완료</option>
+                    <option value="보류" ${row.상태 === '보류' ? 'selected' : ''}>보류</option>
+                </select>
             </td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
@@ -109,6 +106,12 @@ function renderReportTable() {
             <td class="border border-slate-300 px-3 py-2">${row.기록사항 || '-'}</td>
         </tr>
     `).join('');
+}
+
+function updateReportStatus(rowId, status) {
+    if (updateCell(rowId, '상태', status)) {
+        renderReportTable();
+    }
 }
 
 function updateMapCount() {
