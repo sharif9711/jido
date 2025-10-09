@@ -93,12 +93,13 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    const labelBg = isDuplicate ? 'linear-gradient(135deg, rgba(239,68,68,0.85), rgba(220,38,38,0.9))' : 'linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5))';
-    const labelColor = isDuplicate ? 'white' : '#1e293b';
+    // 이름만 표시하는 간단한 라벨 (기존 상태 캡슐 위치에 배치)
+    const labelBg = 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
+    const labelColor = '#1e293b';
     
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
-        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 8px 32px rgba(31,38,135,0.15);border:2px solid rgba(255,255,255,0.8);pointer-events:none">${rowData.순번}. ${rowData.이름 || '이름없음'}</div>`,
+        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid rgba(255,255,255,0.9);pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
         xAnchor: -0.3,
         yAnchor: 0.5,
         map: showLabels ? kakaoMap : null,
