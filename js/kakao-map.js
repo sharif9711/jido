@@ -220,15 +220,9 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
         content: infoContent
     });
 
-    // 마커 클릭 이벤트
+    // 마커 클릭 이벤트 - 하단 정보창 표시
     kakao.maps.event.addListener(marker, 'click', function() {
-        // 다른 인포윈도우 닫기
-        kakaoMarkers.forEach(item => {
-            if (item.infowindow) {
-                item.infowindow.close();
-            }
-        });
-        infowindow.open(kakaoMap, marker);
+        showBottomInfoPanel(rowData, index);
     });
 
     // 마커 호버 이벤트
@@ -239,6 +233,13 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
     kakao.maps.event.addListener(marker, 'mouseout', function() {
         infowindow.close();
     });
+    
+    // 지도 클릭 이벤트 (한번만 등록)
+    if (kakaoMarkers.length === 0) {
+        kakao.maps.event.addListener(kakaoMap, 'click', function() {
+            hideBottomInfoPanel();
+        });
+    }
 
     // 커스텀 라벨 생성 (이름 표시) - 투명 캡슐 또는 붉은색 유리 캡슐
     const labelBg = isDuplicate 
@@ -273,11 +274,17 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
         content: labelContent,
-        yAnchor: 2.5,
+        xAnchor: -0.3,  // 오른쪽으로 이동
+        yAnchor: 0.5,   // 마커 중앙 높이
         map: showLabels ? kakaoMap : null
     });
 
-    kakaoMarkers.push({ marker, infowindow, customOverlay });
+    kakaoMarkers.push({ 
+        marker, 
+        infowindow, 
+        customOverlay, 
+        rowData: rowData  // 데이터 저장
+    });
     
     console.log('Marker added successfully. Total markers:', kakaoMarkers.length);
     return marker;
@@ -434,4 +441,193 @@ function onMapTabActivated() {
     if (!kakaoMap && currentProject) {
         initKakaoMap();
     }
+}
+
+// 하단 정보창 표시
+var currentMarkerIndex = null;
+
+function showBottomInfoPanel(rowData, markerIndex) {
+    currentMarkerIndex = markerIndex;
+    const panel = document.getElementById('bottomInfoPanel');
+    if (!panel) return;
+    
+    // 메모 데이터 가져오기
+    const memos = rowData.메모 || [];
+    const memosHtml = memos.length > 0 
+        ? memos.map((memo, idx) => `
+            <div class="text-xs text-slate-600 mb-1">
+                <span class="font-semibold">${idx + 1}.</span> ${memo.내용} 
+                <span class="text-slate-400">(${memo.시간})</span>
+            </div>
+          `).join('')
+        : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+    
+    panel.innerHTML = `
+        <div class="bg-white rounded-t-2xl shadow-2xl p-6 max-w-4xl mx-auto relative">
+            <!-- 닫기 버튼 -->
+            <button onclick="hideBottomInfoPanel()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            
+            <!-- 헤더 -->
+            <div class="mb-4 pr-8">
+                <h3 class="text-xl font-bold text-slate-900 mb-2">
+                    ${rowData.순번}. ${rowData.이름 || '이름없음'}
+                </h3>
+                <div class="flex flex-wrap gap-4 text-sm text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <span>${rowData.연락처 || '-'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span>${rowData.주소}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 상태 변경 버튼 -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
+                <div class="flex gap-2">
+                    <button onclick="changeMarkerStatus(${markerIndex}, '예정')" 
+                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '예정' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        예정
+                    </button>
+                    <button onclick="changeMarkerStatus(${markerIndex}, '완료')" 
+                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '완료' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        완료
+                    </button>
+                    <button onclick="changeMarkerStatus(${markerIndex}, '보류')" 
+                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '보류' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        보류
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 메모 섹션 -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-slate-700">메모</label>
+                    <button onclick="openMemoModal(${markerIndex})" 
+                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                        + 메모 추가
+                    </button>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-4 max-h-32 overflow-y-auto">
+                    ${memosHtml}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    panel.style.display = 'block';
+    panel.style.animation = 'slideUp 0.3s ease-out';
+}
+
+function hideBottomInfoPanel() {
+    const panel = document.getElementById('bottomInfoPanel');
+    if (panel) {
+        panel.style.animation = 'slideDown 0.3s ease-out';
+        setTimeout(() => {
+            panel.style.display = 'none';
+        }, 300);
+    }
+    currentMarkerIndex = null;
+}
+
+// 상태 변경
+function changeMarkerStatus(markerIndex, newStatus) {
+    if (!currentProject || !kakaoMarkers[markerIndex]) return;
+    
+    const markerData = kakaoMarkers[markerIndex].rowData;
+    markerData.상태 = newStatus;
+    
+    // 원본 데이터도 업데이트
+    const row = currentProject.data.find(r => r.id === markerData.id);
+    if (row) {
+        row.상태 = newStatus;
+    }
+    
+    // 마커 다시 그리기
+    const oldMarker = kakaoMarkers[markerIndex];
+    oldMarker.marker.setMap(null);
+    if (oldMarker.customOverlay) {
+        oldMarker.customOverlay.setMap(null);
+    }
+    
+    // 새 마커 이미지 생성
+    const newMarkerImage = createNumberedMarkerImage(markerData.순번, newStatus);
+    oldMarker.marker.setImage(newMarkerImage);
+    oldMarker.marker.setMap(kakaoMap);
+    if (oldMarker.customOverlay && showLabels) {
+        oldMarker.customOverlay.setMap(kakaoMap);
+    }
+    
+    // 정보창 다시 표시
+    showBottomInfoPanel(markerData, markerIndex);
+}
+
+// 메모 모달 열기
+function openMemoModal(markerIndex) {
+    const modal = document.getElementById('memoModal');
+    if (!modal) return;
+    
+    modal.dataset.markerIndex = markerIndex;
+    document.getElementById('memoInput').value = '';
+    modal.style.display = 'flex';
+}
+
+// 메모 모달 닫기
+function closeMemoModal() {
+    const modal = document.getElementById('memoModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 메모 저장
+function saveMemo() {
+    const modal = document.getElementById('memoModal');
+    const markerIndex = parseInt(modal.dataset.markerIndex);
+    const memoText = document.getElementById('memoInput').value.trim();
+    
+    if (!memoText || !kakaoMarkers[markerIndex]) {
+        alert('메모 내용을 입력해주세요.');
+        return;
+    }
+    
+    const markerData = kakaoMarkers[markerIndex].rowData;
+    
+    // 메모 배열 초기화
+    if (!markerData.메모) {
+        markerData.메모 = [];
+    }
+    
+    // 현재 시간
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}. ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    // 메모 추가
+    markerData.메모.push({
+        내용: memoText,
+        시간: timeStr
+    });
+    
+    // 원본 데이터도 업데이트
+    const row = currentProject.data.find(r => r.id === markerData.id);
+    if (row) {
+        row.메모 = markerData.메모;
+    }
+    
+    closeMemoModal();
+    showBottomInfoPanel(markerData, markerIndex);
 }

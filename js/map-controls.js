@@ -1,9 +1,11 @@
-// 지도 컨트롤 기능 (목록, GPS, 이름표시)
+// 지도 컨트롤 기능 (목록, GPS, 이름표시, 최적경로)
 
 var showLabels = true; // 이름 표시 여부
 var myLocationMarker = null; // 내 위치 마커
 var isGpsActive = false; // GPS 활성화 여부
 var markerListData = []; // 마커 목록 데이터
+var myCurrentLocation = null; // 내 현재 위치
+var routePolyline = null; // 경로 선
 
 // 마커 목록 토글
 function toggleMarkerList() {
@@ -51,7 +53,7 @@ function updateMarkerList() {
                  class="p-4 border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 hover:scale-[1.02]">
                 <div class="flex items-start gap-3">
                     <!-- 순번.이름 캡슐 -->
-                    <div class="${capsuleClass} ${textColor} px-4 py-2 rounded-full text-sm font-semibold border shadow-lg flex-shrink-0">
+                    <div class="${capsuleClass} ${textColor} px-4 py-2 rounded-full text-xs font-semibold border shadow-lg flex-shrink-0">
                         ${item.순번}. ${item.이름 || '이름없음'}
                     </div>
                     
@@ -142,6 +144,9 @@ function toggleMyLocation() {
                     kakaoMap.setCenter(myPosition);
                     kakaoMap.setLevel(4);
                     
+                    // 위치 저장
+                    myCurrentLocation = { lat: lat, lng: lng };
+                    
                     isGpsActive = true;
                     btn.classList.remove('bg-yellow-500');
                     btn.classList.add('bg-green-600', 'text-white');
@@ -192,4 +197,87 @@ function checkDuplicateAddresses(addresses) {
         addressCount[addr] = (addressCount[addr] || 0) + 1;
     });
     return addressCount;
+}
+
+// 최적 경로 계산 (TSP 근사 알고리즘 - Nearest Neighbor)
+function calculateOptimalRoute() {
+    if (!myCurrentLocation) {
+        alert('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.');
+        return;
+    }
+    
+    if (markerListData.length === 0) {
+        alert('표시할 마커가 없습니다.');
+        return;
+    }
+    
+    const btn = document.getElementById('optimalRouteBtn');
+    btn.classList.add('bg-yellow-500', 'text-white');
+    btn.textContent = '🔄 계산중...';
+    
+    // 기존 경로 제거
+    if (routePolyline) {
+        routePolyline.setMap(null);
+    }
+    
+    // 최적 경로 계산 (Nearest Neighbor 알고리즘)
+    const visited = new Array(markerListData.length).fill(false);
+    const route = [];
+    let currentPos = myCurrentLocation;
+    
+    route.push(new kakao.maps.LatLng(currentPos.lat, currentPos.lng));
+    
+    for (let i = 0; i < markerListData.length; i++) {
+        let nearestIndex = -1;
+        let minDistance = Infinity;
+        
+        for (let j = 0; j < markerListData.length; j++) {
+            if (!visited[j]) {
+                const distance = getDistance(
+                    currentPos.lat, currentPos.lng,
+                    markerListData[j].lat, markerListData[j].lng
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestIndex = j;
+                }
+            }
+        }
+        
+        if (nearestIndex !== -1) {
+            visited[nearestIndex] = true;
+            const marker = markerListData[nearestIndex];
+            route.push(new kakao.maps.LatLng(marker.lat, marker.lng));
+            currentPos = { lat: marker.lat, lng: marker.lng };
+        }
+    }
+    
+    // 경로 선 그리기
+    routePolyline = new kakao.maps.Polyline({
+        map: kakaoMap,
+        path: route,
+        strokeWeight: 5,
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.7,
+        strokeStyle: 'solid'
+    });
+    
+    btn.classList.remove('bg-yellow-500');
+    btn.classList.add('bg-purple-600', 'text-white');
+    btn.textContent = '🗺️ 경로표시';
+    
+    alert(`최적 경로가 계산되었습니다!\n총 ${markerListData.length}개 지점`);
+}
+
+// 두 지점 간 거리 계산 (Haversine formula)
+function getDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // 지구 반지름 (km)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
 }

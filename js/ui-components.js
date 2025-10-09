@@ -200,6 +200,9 @@ function getProjectDetailHTML() {
                     <button id="toggleGpsBtn" onclick="toggleMyLocation()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
                         📍 GPS
                     </button>
+                    <button id="optimalRouteBtn" onclick="calculateOptimalRoute()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
+                        🗺️ 최적경로
+                    </button>
                     <button id="toggleLabelsBtn" onclick="toggleMarkerLabels()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors font-medium text-sm">
                         🏷️ 이름
                     </button>
@@ -223,8 +226,55 @@ function getProjectDetailHTML() {
 
                 <!-- 지도 -->
                 <div id="kakaoMap" style="width: 100%; height: 100%;"></div>
+                
+                <!-- 하단 정보창 -->
+                <div id="bottomInfoPanel" class="absolute bottom-0 left-0 right-0 z-20" style="display: none;">
+                </div>
+                
+                <!-- 메모 모달 -->
+                <div id="memoModal" class="fixed inset-0 bg-black/50 items-center justify-center z-30" style="display: none;">
+                    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4">메모 추가</h3>
+                        <textarea id="memoInput" rows="4" placeholder="메모 내용을 입력하세요" 
+                                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                        <div class="flex gap-3 mt-4">
+                            <button onclick="closeMemoModal()" 
+                                    class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                                취소
+                            </button>
+                            <button onclick="saveMemo()" 
+                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        
+        <style>
+            @keyframes slideUp {
+                from {
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideDown {
+                from {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+            }
+        </style>
     `;
 }
 
