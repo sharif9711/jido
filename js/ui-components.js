@@ -188,8 +188,40 @@ function getProjectDetailHTML() {
                     </div>
                 </div>
             </header>
-            <div style="height: calc(100vh - 73px);">
+            <div style="height: calc(100vh - 73px); position: relative;">
+                <!-- 로딩 상태 -->
                 <div id="mapLoadingStatus" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 px-4 py-2 text-sm text-white bg-slate-900/80 rounded-lg backdrop-blur-sm" style="display: none;"></div>
+                
+                <!-- 왼쪽 상단 컨트롤 버튼들 -->
+                <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                    <button id="toggleListBtn" onclick="toggleMarkerList()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
+                        📋 목록
+                    </button>
+                    <button id="toggleGpsBtn" onclick="toggleMyLocation()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
+                        📍 GPS
+                    </button>
+                    <button id="toggleLabelsBtn" onclick="toggleMarkerLabels()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                        🏷️ 이름
+                    </button>
+                </div>
+
+                <!-- 마커 목록 패널 -->
+                <div id="markerListPanel" class="absolute top-4 left-48 z-10 bg-white rounded-lg shadow-xl w-80 max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
+                    <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                        <h3 class="font-bold text-slate-900">마커 목록</h3>
+                        <button onclick="toggleMarkerList()" class="p-1 hover:bg-slate-100 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="markerListContent" class="overflow-y-auto max-h-[calc(100vh-220px)]">
+                        <!-- 목록이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 지도 -->
                 <div id="kakaoMap" style="width: 100%; height: 100%;"></div>
             </div>
         </div>

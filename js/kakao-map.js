@@ -114,7 +114,7 @@ function createMarkerImage(status) {
 }
 
 // 마커 추가
-function addKakaoMarker(coordinate, label, status) {
+function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
     if (!kakaoMap) {
         console.error('Map not initialized, cannot add marker');
         return null;
@@ -169,7 +169,33 @@ function addKakaoMarker(coordinate, label, status) {
         infowindow.close();
     });
 
-    kakaoMarkers.push({ marker, infowindow });
+    // 커스텀 라벨 생성 (이름 표시)
+    const labelColor = isDuplicate ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0, 0, 0, 0.6)';
+    const labelContent = `
+        <div style="
+            background: ${labelColor};
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+        ">
+            ${rowData.순번}. ${rowData.이름 || '이름없음'}
+        </div>
+    `;
+
+    const customOverlay = new kakao.maps.CustomOverlay({
+        position: markerPosition,
+        content: labelContent,
+        yAnchor: 2.3,
+        map: showLabels ? kakaoMap : null
+    });
+
+    kakaoMarkers.push({ marker, infowindow, customOverlay });
     
     console.log('Marker added successfully. Total markers:', kakaoMarkers.length);
     return marker;
@@ -213,7 +239,6 @@ async function displayProjectOnKakaoMap(projectData) {
     );
 
     console.log('Addresses to process:', addressesWithData.length);
-    console.log('Sample addresses:', addressesWithData.slice(0, 3).map(r => r.주소));
 
     if (addressesWithData.length === 0) {
         if (loadingStatus) {
@@ -224,6 +249,10 @@ async function displayProjectOnKakaoMap(projectData) {
         return;
     }
 
+    // 중복 주소 체크
+    const addressList = addressesWithData.map(row => row.주소);
+    const duplicateCheck = checkDuplicateAddresses(addressList);
+
     const loadingStatus = document.getElementById('mapLoadingStatus');
     if (loadingStatus) {
         loadingStatus.style.display = 'block';
@@ -232,6 +261,7 @@ async function displayProjectOnKakaoMap(projectData) {
 
     const coordinates = [];
     let successCount = 0;
+    markerListData = []; // 목록 데이터 초기화
 
     for (let i = 0; i < addressesWithData.length; i++) {
         const row = addressesWithData[i];
@@ -240,9 +270,22 @@ async function displayProjectOnKakaoMap(projectData) {
         const coord = await geocodeAddressKakao(row.주소);
         
         if (coord) {
-            const marker = addKakaoMarker(coord, row.이름 || `#${row.순번}`, row.상태);
+            const isDuplicate = duplicateCheck[row.주소] > 1;
+            const marker = addKakaoMarker(coord, row.이름 || `#${row.순번}`, row.상태, row, isDuplicate);
             if (marker) {
                 coordinates.push(new kakao.maps.LatLng(coord.lat, coord.lng));
+                
+                // 목록 데이터 추가
+                markerListData.push({
+                    순번: row.순번,
+                    이름: row.이름,
+                    연락처: row.연락처,
+                    주소: row.주소,
+                    lat: coord.lat,
+                    lng: coord.lng,
+                    isDuplicate: isDuplicate
+                });
+                
                 successCount++;
                 console.log('✓ Success');
             }
