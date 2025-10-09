@@ -220,6 +220,12 @@ async function calculateOptimalRoute() {
         routePolyline.setMap(null);
     }
     
+    // 기존 화살표들 제거
+    if (window.routeArrows) {
+        window.routeArrows.forEach(arrow => arrow.setMap(null));
+        window.routeArrows = [];
+    }
+    
     // 최적 경로 계산 (Nearest Neighbor 알고리즘)
     const visited = new Array(markerListData.length).fill(false);
     const routeOrder = [];
@@ -270,6 +276,7 @@ async function calculateOptimalRoute() {
 async function drawRoadRoute(start, waypoints) {
     const allPoints = [start, ...waypoints];
     const pathCoords = [];
+    const arrowPositions = []; // 화살표를 표시할 위치들
     
     // 시작점 추가
     pathCoords.push(new kakao.maps.LatLng(start.lat, start.lng));
@@ -278,6 +285,7 @@ async function drawRoadRoute(start, waypoints) {
     for (let i = 0; i < allPoints.length - 1; i++) {
         const origin = allPoints[i];
         const destination = allPoints[i + 1];
+        const segmentStart = pathCoords.length; // 현재 구간 시작 인덱스
         
         try {
             // 카카오 REST API를 사용한 경로 탐색
@@ -324,22 +332,52 @@ async function drawRoadRoute(start, waypoints) {
             pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
         }
         
+        // 현재 구간의 중간 지점에 화살표 표시할 위치 저장
+        const segmentEnd = pathCoords.length - 1;
+        const midIndex = Math.floor((segmentStart + segmentEnd) / 2);
+        if (midIndex < pathCoords.length - 1) {
+            arrowPositions.push({
+                start: pathCoords[midIndex],
+                end: pathCoords[midIndex + 1]
+            });
+        }
+        
         // API 호출 제한 방지
         await new Promise(resolve => setTimeout(resolve, 300));
     }
     
-    // 경로 선 그리기
+    // 기존 경로 제거
     if (routePolyline) {
         routePolyline.setMap(null);
     }
     
+    // 메인 경로 선 그리기
     routePolyline = new kakao.maps.Polyline({
         map: kakaoMap,
         path: pathCoords,
-        strokeWeight: 5,
+        strokeWeight: 6,
         strokeColor: '#FF0000',
-        strokeOpacity: 0.7,
+        strokeOpacity: 0.8,
         strokeStyle: 'solid'
+    });
+    
+    // 화살표 표시 (구간마다)
+    arrowPositions.forEach(pos => {
+        const arrow = new kakao.maps.Polyline({
+            map: kakaoMap,
+            path: [pos.start, pos.end],
+            strokeWeight: 6,
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeStyle: 'solid',
+            endArrow: true  // 화살표 추가
+        });
+        
+        // 화살표도 routePolyline 배열에 저장 (나중에 삭제하기 위해)
+        if (!window.routeArrows) {
+            window.routeArrows = [];
+        }
+        window.routeArrows.push(arrow);
     });
 }
 
