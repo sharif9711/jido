@@ -130,7 +130,17 @@ function getProjectDetailHTML() {
                 </div>
                 <div id="content-보고서" class="tab-content" style="display: none;">
                     <div class="bg-white rounded-lg shadow-sm p-6">
-                        <h2 class="text-lg font-bold text-slate-900 mb-4">보고서</h2>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-900">보고서</h2>
+                            <button onclick="downloadExcel()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 font-medium text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                엑셀 다운로드
+                            </button>
+                        </div>
                         <div class="overflow-auto" style="max-height: 600px;">
                             <table class="w-full border-collapse text-sm">
                                 <thead class="sticky top-0 bg-slate-100 z-10">

@@ -138,3 +138,56 @@ function handlePaste(event, rowIndex, field) {
     renderReportTable();
     updateMapCount();
 }
+
+// 엑셀 다운로드 함수
+function downloadExcel() {
+    if (!currentProject) {
+        alert('프로젝트가 선택되지 않았습니다.');
+        return;
+    }
+
+    // 입력된 데이터만 필터링
+    const filteredData = currentProject.data.filter(row => row.이름 || row.연락처 || row.주소);
+    
+    if (filteredData.length === 0) {
+        alert('다운로드할 데이터가 없습니다.');
+        return;
+    }
+
+    // CSV 형식으로 데이터 생성
+    const headers = ['순번', '이름', '연락처', '주소', '우편번호', '상태', '법정동코드', 'PNU코드', '지목', '면적', '기록사항'];
+    const csvContent = [
+        headers.join(','),
+        ...filteredData.map(row => [
+            row.순번,
+            `"${row.이름 || ''}"`,
+            `"${row.연락처 || ''}"`,
+            `"${row.주소 || ''}"`,
+            `"${row.우편번호 || ''}"`,
+            row.상태,
+            `"${row.법정동코드 || ''}"`,
+            `"${row.pnu코드 || ''}"`,
+            `"${row.지목 || ''}"`,
+            `"${row.면적 || ''}"`,
+            `"${(row.기록사항 || '').replace(/\n/g, ' ')}"`
+        ].join(','))
+    ].join('\n');
+
+    // BOM 추가 (한글 깨짐 방지)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // 다운로드
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fileName = `${currentProject.projectName}_보고서_${new Date().toISOString().slice(0, 10)}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert(`"${fileName}" 파일이 다운로드되었습니다.`);
+}
