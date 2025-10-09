@@ -1,11 +1,12 @@
-// 지도 컨트롤 기능 (목록, GPS, 이름표시, 최적경로)
+// 지도 컨트롤 기능
 
-var showLabels = true; // 이름 표시 여부
-var myLocationMarker = null; // 내 위치 마커
-var isGpsActive = false; // GPS 활성화 여부
-var markerListData = []; // 마커 목록 데이터
-var myCurrentLocation = null; // 내 현재 위치
-var routePolyline = null; // 경로 선
+var showLabels = true;
+var myLocationMarker = null;
+var isGpsActive = false;
+var markerListData = [];
+var myCurrentLocation = null;
+var routePolyline = null;
+var routeMarkers = []; // 경로 순번 마커들
 
 // 마커 목록 토글
 function toggleMarkerList() {
@@ -24,7 +25,7 @@ function toggleMarkerList() {
     }
 }
 
-// 마커 목록 업데이트 - 이름, 연락처, 주소 표시
+// 마커 목록 업데이트
 function updateMarkerList() {
     const content = document.getElementById('markerListContent');
     if (!content || markerListData.length === 0) {
@@ -41,7 +42,6 @@ function updateMarkerList() {
     }
 
     content.innerHTML = markerListData.map((item, index) => {
-        // 중복 여부에 따른 스타일
         const capsuleClass = item.isDuplicate 
             ? 'bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md border-red-300/50' 
             : 'bg-white/60 backdrop-blur-md border-slate-200/50';
@@ -52,12 +52,10 @@ function updateMarkerList() {
             <div onclick="focusOnMarker(${index})" 
                  class="p-4 border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 hover:scale-[1.02]">
                 <div class="flex items-start gap-3">
-                    <!-- 순번.이름 캡슐 -->
                     <div class="${capsuleClass} ${textColor} px-4 py-2 rounded-full text-xs font-semibold border shadow-lg flex-shrink-0">
                         ${item.순번}. ${item.이름 || '이름없음'}
                     </div>
                     
-                    <!-- 정보 -->
                     <div class="flex-1 min-w-0">
                         <div class="text-sm text-slate-700 mb-1 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
@@ -87,12 +85,7 @@ function focusOnMarker(index) {
     if (item.lat && item.lng && kakaoMap) {
         const position = new kakao.maps.LatLng(item.lat, item.lng);
         kakaoMap.setCenter(position);
-        kakaoMap.setLevel(3); // 줌 인
-        
-        // 인포윈도우 열기
-        if (kakaoMarkers[index] && kakaoMarkers[index].infowindow) {
-            kakaoMarkers[index].infowindow.open(kakaoMap, kakaoMarkers[index].marker);
-        }
+        kakaoMap.setLevel(3);
     }
 }
 
@@ -101,16 +94,15 @@ function toggleMyLocation() {
     const btn = document.getElementById('toggleGpsBtn');
     
     if (isGpsActive) {
-        // GPS 비활성화
         if (myLocationMarker) {
             myLocationMarker.setMap(null);
             myLocationMarker = null;
         }
         isGpsActive = false;
+        myCurrentLocation = null;
         btn.classList.remove('bg-green-600', 'text-white');
         btn.classList.add('bg-white', 'text-slate-700');
     } else {
-        // GPS 활성화
         if (navigator.geolocation) {
             btn.classList.add('bg-yellow-500', 'text-white');
             btn.classList.remove('bg-white', 'text-slate-700');
@@ -121,14 +113,12 @@ function toggleMyLocation() {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     
-                    // 내 위치 마커 생성
                     const myPosition = new kakao.maps.LatLng(lat, lng);
                     
                     if (myLocationMarker) {
                         myLocationMarker.setMap(null);
                     }
                     
-                    // 파란색 원형 마커
                     myLocationMarker = new kakao.maps.Circle({
                         center: myPosition,
                         radius: 50,
@@ -140,11 +130,9 @@ function toggleMyLocation() {
                         map: kakaoMap
                     });
                     
-                    // 지도 중심 이동
                     kakaoMap.setCenter(myPosition);
                     kakaoMap.setLevel(4);
                     
-                    // 위치 저장
                     myCurrentLocation = { lat: lat, lng: lng };
                     
                     isGpsActive = true;
@@ -178,7 +166,6 @@ function toggleMarkerLabels() {
         btn.classList.add('bg-white', 'text-slate-700');
     }
     
-    // 모든 마커의 라벨 표시/숨김
     kakaoMarkers.forEach(item => {
         if (item.customOverlay) {
             if (showLabels) {
@@ -199,7 +186,7 @@ function checkDuplicateAddresses(addresses) {
     return addressCount;
 }
 
-// 최적 경로 계산 (TSP 근사 알고리즘 - Nearest Neighbor)
+// 최적 경로 계산
 async function calculateOptimalRoute() {
     if (!myCurrentLocation) {
         showMapMessage('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.', 'warning');
@@ -211,14 +198,8 @@ async function calculateOptimalRoute() {
         return;
     }
     
-    // "예정" 상태인 마커만 필터링
-    const pendingMarkers = markerListData.filter(marker => {
-        // 원본 데이터에서 상태 확인
-        const originalData = currentProject.data.find(row => 
-            row.순번 === marker.순번 && row.주소 === marker.주소
-        );
-        return originalData && originalData.상태 === '예정';
-    });
+    // 예정 상태인 마커만 필터링
+    const pendingMarkers = markerListData.filter(marker => marker.상태 === '예정');
     
     if (pendingMarkers.length === 0) {
         showMapMessage('예정 상태인 마커가 없습니다. (완료/보류 제외)', 'warning');
@@ -232,15 +213,14 @@ async function calculateOptimalRoute() {
     // 기존 경로 제거
     if (routePolyline) {
         routePolyline.setMap(null);
+        routePolyline = null;
     }
     
-    // 기존 화살표들 제거
-    if (window.routeArrows) {
-        window.routeArrows.forEach(arrow => arrow.setMap(null));
-        window.routeArrows = [];
-    }
+    // 기존 순번 마커 제거
+    routeMarkers.forEach(marker => marker.setMap(null));
+    routeMarkers = [];
     
-    // 최적 경로 계산 (Nearest Neighbor 알고리즘) - 예정 상태만
+    // 최적 경로 계산
     const visited = new Array(pendingMarkers.length).fill(false);
     const routeOrder = [];
     let currentPos = myCurrentLocation;
@@ -267,7 +247,9 @@ async function calculateOptimalRoute() {
             visited[nearestIndex] = true;
             routeOrder.push({
                 lat: pendingMarkers[nearestIndex].lat,
-                lng: pendingMarkers[nearestIndex].lng
+                lng: pendingMarkers[nearestIndex].lng,
+                순번: i + 1,
+                이름: pendingMarkers[nearestIndex].이름
             });
             currentPos = { 
                 lat: pendingMarkers[nearestIndex].lat, 
@@ -276,32 +258,28 @@ async function calculateOptimalRoute() {
         }
     }
     
-    // 카카오 길찾기 API를 사용하여 실제 도로 경로 그리기
+    // 경로 그리기
     await drawRoadRoute(myCurrentLocation, routeOrder);
     
     btn.classList.remove('bg-yellow-500');
     btn.classList.add('bg-purple-600', 'text-white');
     btn.textContent = '🗺️ 경로표시';
     
-    // 지도 상단에 메시지 표시
     showMapMessage(`최적 경로 완성! 총 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
 }
 
-// 실제 도로를 따라 경로 그리기 (네비게이션 스타일)
+// 실제 도로를 따라 경로 그리기
 async function drawRoadRoute(start, waypoints) {
     const allPoints = [start, ...waypoints];
     const pathCoords = [];
     
-    // 시작점 추가
     pathCoords.push(new kakao.maps.LatLng(start.lat, start.lng));
     
-    // 각 구간마다 길찾기 API 호출
     for (let i = 0; i < allPoints.length - 1; i++) {
         const origin = allPoints[i];
         const destination = allPoints[i + 1];
         
         try {
-            // 카카오 REST API를 사용한 경로 탐색
             const response = await fetch(
                 `https://apis-navi.kakaomobility.com/v1/directions?` +
                 `origin=${origin.lng},${origin.lat}&` +
@@ -318,7 +296,6 @@ async function drawRoadRoute(start, waypoints) {
             if (response.ok) {
                 const data = await response.json();
                 
-                // 경로 좌표 추출
                 if (data.routes && data.routes[0] && data.routes[0].sections) {
                     data.routes[0].sections.forEach(section => {
                         if (section.roads) {
@@ -335,36 +312,17 @@ async function drawRoadRoute(start, waypoints) {
                     });
                 }
             } else {
-                // API 실패 시 직선으로 대체
-                console.warn('길찾기 API 실패, 직선으로 대체');
                 pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
             }
         } catch (error) {
             console.error('경로 탐색 오류:', error);
-            // 오류 시 직선으로 대체
             pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
         }
         
-        // API 호출 제한 방지
         await new Promise(resolve => setTimeout(resolve, 300));
     }
     
-    // 기존 경로 제거
-    if (routePolyline) {
-        routePolyline.setMap(null);
-    }
-    
-    // 기존 화살표들 제거
-    if (window.routeArrows) {
-        window.routeArrows.forEach(arrow => arrow.setMap(null));
-        window.routeArrows = [];
-    }
-    
-    // 경로 선 그리기 (카카오 기본 네비게이션 화살표 스타일)
-    if (routePolyline) {
-        routePolyline.setMap(null);
-    }
-    
+    // 경로 선 그리기
     routePolyline = new kakao.maps.Polyline({
         map: kakaoMap,
         path: pathCoords,
@@ -372,20 +330,45 @@ async function drawRoadRoute(start, waypoints) {
         strokeColor: '#4A90E2',
         strokeOpacity: 0.9,
         strokeStyle: 'solid',
-        endArrow: true,  // 카카오맵 기본 화살표
+        endArrow: true,
         zIndex: 2
     });
     
-    // 외곽선도 함께 저장 (삭제하기 위해)
-    if (!window.routeArrows) {
-        window.routeArrows = [];
-    }
-    window.routeArrows.push(outlinePolyline);
+    // 순번 마커 추가
+    waypoints.forEach((point, index) => {
+        const markerContent = `
+            <div style="
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+                border: 3px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            ">
+                ${point.순번}
+            </div>
+        `;
+        
+        const customOverlay = new kakao.maps.CustomOverlay({
+            map: kakaoMap,
+            position: new kakao.maps.LatLng(point.lat, point.lng),
+            content: markerContent,
+            zIndex: 100
+        });
+        
+        routeMarkers.push(customOverlay);
+    });
 }
 
-// 두 지점 간 거리 계산 (Haversine formula)
+// 거리 계산
 function getDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371; // 지구 반지름 (km)
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -395,12 +378,11 @@ function getDistance(lat1, lng1, lat2, lng2) {
     return R * c;
 }
 
-// 지도 상단에 메시지 표시
+// 지도 메시지 표시
 function showMapMessage(message, type = 'info') {
     const loadingStatus = document.getElementById('mapLoadingStatus');
     if (!loadingStatus) return;
     
-    // 타입별 색상
     const colors = {
         success: '#10b981',
         error: '#ef4444',
@@ -412,7 +394,6 @@ function showMapMessage(message, type = 'info') {
     loadingStatus.style.backgroundColor = colors[type] || colors.info;
     loadingStatus.textContent = message;
     
-    // 3초 후 자동 숨김
     setTimeout(() => {
         if (loadingStatus) {
             loadingStatus.style.display = 'none';
