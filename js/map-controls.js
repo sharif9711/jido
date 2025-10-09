@@ -269,7 +269,8 @@ async function calculateOptimalRoute() {
     btn.classList.add('bg-purple-600', 'text-white');
     btn.textContent = '🗺️ 경로표시';
     
-    alert(`최적 경로가 계산되었습니다!\n총 ${markerListData.length}개 지점`);
+    // 지도 상단에 메시지 표시
+    showMapMessage(`최적 경로 완성! 총 ${markerListData.length}개 지점`, 'success');
 }
 
 // 실제 도로를 따라 경로 그리기 (네비게이션 스타일)
@@ -493,4 +494,29 @@ function getDistance(lat1, lng1, lat2, lng2) {
               Math.sin(dLng/2) * Math.sin(dLng/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+}
+
+// 지도 상단에 메시지 표시
+function showMapMessage(message, type = 'info') {
+    const loadingStatus = document.getElementById('mapLoadingStatus');
+    if (!loadingStatus) return;
+    
+    // 타입별 색상
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#3b82f6',
+        warning: '#f59e0b'
+    };
+    
+    loadingStatus.style.display = 'block';
+    loadingStatus.style.backgroundColor = colors[type] || colors.info;
+    loadingStatus.textContent = message;
+    
+    // 3초 후 자동 숨김
+    setTimeout(() => {
+        if (loadingStatus) {
+            loadingStatus.style.display = 'none';
+        }
+    }, 3000);
 }

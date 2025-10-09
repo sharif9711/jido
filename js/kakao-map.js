@@ -229,6 +229,9 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
             }
         });
         
+        // 호버 인포윈도우 닫기
+        infowindow.close();
+        
         // 하단 정보창 표시
         showBottomInfoPanel(rowData, index);
     });
@@ -249,33 +252,45 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
         });
     }
 
-    // 커스텀 라벨 생성 (이름 표시) - 투명 캡슐 또는 붉은색 유리 캡슐
+    // 커스텀 라벨 생성 (이름 표시) - 투명 유리 굴절 캡슐
     const labelBg = isDuplicate 
-        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))' 
-        : 'rgba(255, 255, 255, 0.85)';
+        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.85), rgba(220, 38, 38, 0.9))' 
+        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5))';
     
-    const labelBorder = isDuplicate ? 'rgba(255, 100, 100, 0.5)' : 'rgba(0, 0, 0, 0.15)';
+    const labelBorder = isDuplicate ? 'rgba(255, 100, 100, 0.6)' : 'rgba(255, 255, 255, 0.8)';
     const labelTextColor = isDuplicate ? 'white' : '#1e293b';
     const labelShadow = isDuplicate 
-        ? '0 4px 12px rgba(239, 68, 68, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3)' 
-        : '0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.8)';
+        ? '0 8px 32px rgba(239, 68, 68, 0.4), inset 0 2px 8px rgba(255, 255, 255, 0.3), inset 0 -2px 8px rgba(0, 0, 0, 0.1)' 
+        : '0 8px 32px rgba(31, 38, 135, 0.15), inset 0 2px 8px rgba(255, 255, 255, 0.8), inset 0 -2px 8px rgba(0, 0, 0, 0.05)';
     
     const labelContent = `
         <div style="
             background: ${labelBg};
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
             color: ${labelTextColor};
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 700;
             white-space: nowrap;
             box-shadow: ${labelShadow};
-            border: 1.5px solid ${labelBorder};
-            letter-spacing: 0.3px;
-            margin-left: 50px;
+            border: 2px solid ${labelBorder};
+            letter-spacing: 0.5px;
+            position: relative;
+            margin-left: 45px;
+            text-shadow: ${isDuplicate ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(255,255,255,0.8)'};
         ">
+            <div style="
+                position: absolute;
+                top: 6px;
+                left: 8px;
+                width: 60%;
+                height: 35%;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+                border-radius: 12px 12px 0 0;
+                pointer-events: none;
+            "></div>
             ${rowData.순번}. ${rowData.이름 || '이름없음'}
         </div>
     `;
@@ -377,7 +392,7 @@ async function displayProjectOnKakaoMap(projectData) {
             if (marker) {
                 coordinates.push(new kakao.maps.LatLng(coord.lat, coord.lng));
                 
-                // 목록 데이터 추가
+                // 원본 데이터에 좌표 저장
                 markerListData.push({
                     순번: row.순번,
                     이름: row.이름,
@@ -424,10 +439,10 @@ async function displayProjectOnKakaoMap(projectData) {
     console.log('=== displayProjectOnKakaoMap END ===');
     console.log('Total success:', successCount, '/', addressesWithData.length);
     
-    // alert 대신 로딩 상태로 결과 표시
+    // 지도 상단에 결과 메시지 표시
     if (loadingStatus) {
         loadingStatus.style.display = 'block';
-        loadingStatus.style.color = successCount > 0 ? '#10b981' : '#ef4444';
+        loadingStatus.style.backgroundColor = successCount > 0 ? '#10b981' : '#ef4444';
         loadingStatus.textContent = `✓ 총 ${addressesWithData.length}개 주소 중 ${successCount}개를 지도에 표시했습니다.`;
         
         // 3초 후 메시지 숨김
@@ -487,19 +502,21 @@ function showBottomInfoPanel(rowData, markerIndex) {
                     ${rowData.순번}. ${rowData.이름 || '이름없음'}
                 </h3>
                 <div class="flex flex-wrap gap-4 text-sm text-slate-600">
-                    <div class="flex items-center gap-2">
+                    <!-- 전화 연결 -->
+                    <a href="tel:${rowData.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 transition-colors ${!rowData.연락처 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                         </svg>
-                        <span>${rowData.연락처 || '-'}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
+                        <span class="underline">${rowData.연락처 || '-'}</span>
+                    </a>
+                    <!-- 카카오네비 연결 -->
+                    <button onclick="openKakaoNavi('${rowData.이름 || '목적지'}', ${rowData.lat || 0}, ${rowData.lng || 0})" class="flex items-center gap-2 hover:text-blue-600 transition-colors cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
                         </svg>
-                        <span>${rowData.주소}</span>
-                    </div>
+                        <span class="underline">${rowData.주소}</span>
+                    </button>
                 </div>
             </div>
             
@@ -551,6 +568,36 @@ function hideBottomInfoPanel() {
         }, 300);
     }
     currentMarkerIndex = null;
+}
+
+// 카카오네비 열기
+function openKakaoNavi(name, lat, lng) {
+    if (!lat || !lng) {
+        alert('위치 정보가 없습니다.');
+        return;
+    }
+    
+    // 카카오네비 앱 스킴 (모바일)
+    const naviUrl = `kakaonavi://route?ep=${lng},${lat}&by=ROADMAP&name=${encodeURIComponent(name)}`;
+    
+    // 웹 네비 URL (PC)
+    const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+    
+    // 모바일인지 체크
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // 모바일: 앱 실행 시도
+        window.location.href = naviUrl;
+        
+        // 1초 후 앱이 실행되지 않으면 웹 네비로 이동
+        setTimeout(() => {
+            window.open(webNaviUrl, '_blank');
+        }, 1000);
+    } else {
+        // PC: 웹 네비 열기
+        window.open(webNaviUrl, '_blank');
+    }
 }
 
 // 상태 변경
