@@ -222,6 +222,14 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
 
     // 마커 클릭 이벤트 - 하단 정보창 표시
     kakao.maps.event.addListener(marker, 'click', function() {
+        // 다른 인포윈도우 닫기
+        kakaoMarkers.forEach(item => {
+            if (item.infowindow) {
+                item.infowindow.close();
+            }
+        });
+        
+        // 하단 정보창 표시
         showBottomInfoPanel(rowData, index);
     });
 
@@ -266,6 +274,7 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
             box-shadow: ${labelShadow};
             border: 1.5px solid ${labelBorder};
             letter-spacing: 0.3px;
+            margin-left: 50px;
         ">
             ${rowData.순번}. ${rowData.이름 || '이름없음'}
         </div>
@@ -274,8 +283,8 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
         content: labelContent,
-        xAnchor: -0.3,  // 오른쪽으로 이동
-        yAnchor: 0.5,   // 마커 중앙 높이
+        xAnchor: 0,      // 라벨의 왼쪽 가장자리가 기준점
+        yAnchor: 0.5,    // 라벨의 세로 중앙이 마커 세로 중앙과 일치
         map: showLabels ? kakaoMap : null
     });
 

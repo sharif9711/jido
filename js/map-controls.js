@@ -200,7 +200,7 @@ function checkDuplicateAddresses(addresses) {
 }
 
 // 최적 경로 계산 (TSP 근사 알고리즘 - Nearest Neighbor)
-function calculateOptimalRoute() {
+async function calculateOptimalRoute() {
     if (!myCurrentLocation) {
         alert('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.');
         return;
@@ -222,10 +222,8 @@ function calculateOptimalRoute() {
     
     // 최적 경로 계산 (Nearest Neighbor 알고리즘)
     const visited = new Array(markerListData.length).fill(false);
-    const route = [];
+    const routeOrder = [];
     let currentPos = myCurrentLocation;
-    
-    route.push(new kakao.maps.LatLng(currentPos.lat, currentPos.lng));
     
     for (let i = 0; i < markerListData.length; i++) {
         let nearestIndex = -1;
@@ -247,27 +245,102 @@ function calculateOptimalRoute() {
         
         if (nearestIndex !== -1) {
             visited[nearestIndex] = true;
-            const marker = markerListData[nearestIndex];
-            route.push(new kakao.maps.LatLng(marker.lat, marker.lng));
-            currentPos = { lat: marker.lat, lng: marker.lng };
+            routeOrder.push({
+                lat: markerListData[nearestIndex].lat,
+                lng: markerListData[nearestIndex].lng
+            });
+            currentPos = { 
+                lat: markerListData[nearestIndex].lat, 
+                lng: markerListData[nearestIndex].lng 
+            };
         }
     }
     
-    // 경로 선 그리기
-    routePolyline = new kakao.maps.Polyline({
-        map: kakaoMap,
-        path: route,
-        strokeWeight: 5,
-        strokeColor: '#FF0000',
-        strokeOpacity: 0.7,
-        strokeStyle: 'solid'
-    });
+    // 카카오 길찾기 API를 사용하여 실제 도로 경로 그리기
+    await drawRoadRoute(myCurrentLocation, routeOrder);
     
     btn.classList.remove('bg-yellow-500');
     btn.classList.add('bg-purple-600', 'text-white');
     btn.textContent = '🗺️ 경로표시';
     
     alert(`최적 경로가 계산되었습니다!\n총 ${markerListData.length}개 지점`);
+}
+
+// 실제 도로를 따라 경로 그리기
+async function drawRoadRoute(start, waypoints) {
+    const allPoints = [start, ...waypoints];
+    const pathCoords = [];
+    
+    // 시작점 추가
+    pathCoords.push(new kakao.maps.LatLng(start.lat, start.lng));
+    
+    // 각 구간마다 길찾기 API 호출
+    for (let i = 0; i < allPoints.length - 1; i++) {
+        const origin = allPoints[i];
+        const destination = allPoints[i + 1];
+        
+        try {
+            // 카카오 REST API를 사용한 경로 탐색
+            const response = await fetch(
+                `https://apis-navi.kakaomobility.com/v1/directions?` +
+                `origin=${origin.lng},${origin.lat}&` +
+                `destination=${destination.lng},${destination.lat}&` +
+                `priority=RECOMMEND`,
+                {
+                    headers: {
+                        'Authorization': `KakaoAK ${KAKAO_REST_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // 경로 좌표 추출
+                if (data.routes && data.routes[0] && data.routes[0].sections) {
+                    data.routes[0].sections.forEach(section => {
+                        if (section.roads) {
+                            section.roads.forEach(road => {
+                                road.vertexes.forEach((coord, idx) => {
+                                    if (idx % 2 === 0) {
+                                        const lng = coord;
+                                        const lat = road.vertexes[idx + 1];
+                                        pathCoords.push(new kakao.maps.LatLng(lat, lng));
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+            } else {
+                // API 실패 시 직선으로 대체
+                console.warn('길찾기 API 실패, 직선으로 대체');
+                pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
+            }
+        } catch (error) {
+            console.error('경로 탐색 오류:', error);
+            // 오류 시 직선으로 대체
+            pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
+        }
+        
+        // API 호출 제한 방지
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    // 경로 선 그리기
+    if (routePolyline) {
+        routePolyline.setMap(null);
+    }
+    
+    routePolyline = new kakao.maps.Polyline({
+        map: kakaoMap,
+        path: pathCoords,
+        strokeWeight: 5,
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.7,
+        strokeStyle: 'solid'
+    });
 }
 
 // 두 지점 간 거리 계산 (Haversine formula)
