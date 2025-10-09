@@ -239,12 +239,12 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
         </div>
     `;
 
-    // 라벨을 마커 오른쪽, 상단 정렬에 배치
+    // 라벨을 마커 위쪽에 배치 (마커 상단과 라벨 상단 정렬)
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
         content: labelContent,
-        xAnchor: -0.7,   // 왼쪽으로 (마커 폭의 70% 지점)
-        yAnchor: 0.2,    // 위쪽으로 (상단 정렬)
+        xAnchor: 0.5,    // 중앙 정렬
+        yAnchor: 1.5,    // 마커 위쪽에 배치 (마커 높이 52px 고려)
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
@@ -532,30 +532,6 @@ function showBottomInfoPanel(rowData, markerIndex) {
     
     panel.style.display = 'block';
     panel.style.animation = 'slideUp 0.3s ease-out';
-}="changeMarkerStatus(${markerIndex}, '보류')" 
-                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '보류' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                        보류
-                    </button>
-                </div>
-            </div>
-            
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block text-sm font-medium text-slate-700">메모</label>
-                    <button onclick="openMemoModal(${markerIndex})" 
-                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                        + 메모 추가
-                    </button>
-                </div>
-                <div class="bg-slate-50 rounded-lg p-4 max-h-32 overflow-y-auto">
-                    ${memosHtml}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    panel.style.display = 'block';
-    panel.style.animation = 'slideUp 0.3s ease-out';
 }
 
 function hideBottomInfoPanel() {
@@ -597,6 +573,7 @@ function changeMarkerStatus(markerIndex, newStatus) {
     if (!currentProject || !kakaoMarkers[markerIndex]) return;
     
     const markerData = kakaoMarkers[markerIndex].rowData;
+    const oldStatus = markerData.상태;
     markerData.상태 = newStatus;
     
     // 원본 데이터 업데이트 (보고서에도 반영)
@@ -629,6 +606,13 @@ function changeMarkerStatus(markerIndex, newStatus) {
     if (oldMarker.customOverlay && showLabels) {
         oldMarker.customOverlay.setMap(kakaoMap);
     }
+    
+    // 같은 주소의 모든 마커 업데이트
+    currentDisplayedMarkers.forEach(item => {
+        if (item.index === markerIndex) {
+            item.data.상태 = newStatus;
+        }
+    });
     
     showBottomInfoPanel(markerData, markerIndex);
 }
@@ -667,9 +651,8 @@ function saveMemo() {
     }
     
     const now = new Date();
-    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}. ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    const memoEntry = `${markerData.메모.length + 1}. ${memoText} (${timeStr})`;
     markerData.메모.push({
         내용: memoText,
         시간: timeStr
@@ -681,20 +664,24 @@ function saveMemo() {
         row.메모 = markerData.메모;
         
         // 기록사항에 추가
-        if (!row.기록사항) {
-            row.기록사항 = '';
-        }
+        const memoEntry = `${timeStr} - ${memoText}`;
         
-        if (row.기록사항) {
-            row.기록사항 += '\n' + memoEntry;
-        } else {
+        if (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') {
             row.기록사항 = memoEntry;
+        } else {
+            row.기록사항 += '\n' + memoEntry;
         }
         
         // 보고서 테이블 업데이트
         if (typeof renderReportTable === 'function') {
             renderReportTable();
         }
+    }
+    
+    // 프로젝트 데이터 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
     }
     
     closeMemoModal();

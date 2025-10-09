@@ -106,7 +106,7 @@ function toggleMyLocation() {
         if (navigator.geolocation) {
             btn.classList.add('bg-yellow-500', 'text-white');
             btn.classList.remove('bg-white', 'text-slate-700');
-            btn.textContent = '📡 검색중...';
+            btn.textContent = '🔡 검색중...';
             
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -204,27 +204,11 @@ async function calculateOptimalRoute() {
         routeMarkers.forEach(marker => marker.setMap(null));
         routeMarkers = [];
         
-        // 내 위치 마커 제거
-        if (myLocationMarker) {
-            myLocationMarker.setMap(null);
-            myLocationMarker = null;
-        }
-        
         isRouteActive = false;
-        isGpsActive = false;
-        myCurrentLocation = null;
         
-        btn.classList.remove('bg-purple-600');
+        btn.classList.remove('bg-purple-600', 'text-white');
         btn.classList.add('bg-white', 'text-slate-700');
         btn.textContent = '🗺️ 최적경로';
-        
-        // GPS 버튼도 초기화
-        const gpsBtn = document.getElementById('toggleGpsBtn');
-        if (gpsBtn) {
-            gpsBtn.classList.remove('bg-green-600', 'text-white');
-            gpsBtn.classList.add('bg-white', 'text-slate-700');
-            gpsBtn.textContent = '📍 GPS';
-        }
         
         showMapMessage('경로가 제거되었습니다.', 'info');
         return;
@@ -249,6 +233,7 @@ async function calculateOptimalRoute() {
         return;
     }
     
+    btn.classList.remove('bg-white', 'text-slate-700');
     btn.classList.add('bg-yellow-500', 'text-white');
     btn.textContent = '🔄 계산중...';
     
