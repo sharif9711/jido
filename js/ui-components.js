@@ -182,29 +182,15 @@ function getProjectDetailHTML() {
                             </svg>
                         </button>
                         <h1 class="text-xl font-bold text-slate-900">지도</h1>
-                        <button onclick="if(currentProject && currentProject.data) { displayProjectOnKakaoMap(currentProject.data); } else { alert('프로젝트 데이터가 없습니다.'); }" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors">
-                            주소 표시
+                        <button onclick="if(currentProject && currentProject.data) { displayProjectOnKakaoMap(currentProject.data); } else { console.log('No project data'); }" class="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors">
+                            주소 새로고침
                         </button>
                     </div>
                 </div>
             </header>
-            <div style="height: calc(100vh - 140px);" class="flex flex-col">
-                <div id="mapLoadingStatus" class="px-4 py-2 text-sm text-slate-600 bg-white border-b border-slate-200" style="display: none;"></div>
-                <div id="kakaoMap" class="flex-1"></div>
-                <div class="bg-white border-t border-slate-200 px-4 py-3 flex gap-6">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span class="text-sm text-slate-700">예정</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span class="text-sm text-slate-700">완료</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                        <span class="text-sm text-slate-700">보류</span>
-                    </div>
-                </div>
+            <div style="height: calc(100vh - 73px);">
+                <div id="mapLoadingStatus" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 px-4 py-2 text-sm text-white bg-slate-900/80 rounded-lg backdrop-blur-sm" style="display: none;"></div>
+                <div id="kakaoMap" style="width: 100%; height: 100%;"></div>
             </div>
         </div>
     `;
