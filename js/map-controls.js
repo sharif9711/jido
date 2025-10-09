@@ -119,15 +119,64 @@ function toggleMyLocation() {
                         myLocationMarker.setMap(null);
                     }
                     
-                    myLocationMarker = new kakao.maps.Circle({
-                        center: myPosition,
-                        radius: 50,
-                        strokeWeight: 3,
-                        strokeColor: '#4285F4',
-                        strokeOpacity: 1,
-                        fillColor: '#4285F4',
-                        fillOpacity: 0.3,
-                        map: kakaoMap
+                    // 더 시인성 좋은 내 위치 마커 생성
+                    myLocationMarker = new kakao.maps.CustomOverlay({
+                        position: myPosition,
+                        content: `
+                            <div style="position: relative; width: 40px; height: 40px;">
+                                <!-- 외부 펄스 효과 -->
+                                <div style="
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    transform: translate(-50%, -50%);
+                                    width: 40px;
+                                    height: 40px;
+                                    background: rgba(66, 133, 244, 0.3);
+                                    border-radius: 50%;
+                                    animation: pulse 2s infinite;
+                                "></div>
+                                <!-- 중간 원 -->
+                                <div style="
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    transform: translate(-50%, -50%);
+                                    width: 24px;
+                                    height: 24px;
+                                    background: rgba(66, 133, 244, 0.5);
+                                    border-radius: 50%;
+                                    border: 3px solid white;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                                "></div>
+                                <!-- 중심점 -->
+                                <div style="
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    transform: translate(-50%, -50%);
+                                    width: 12px;
+                                    height: 12px;
+                                    background: #4285F4;
+                                    border-radius: 50%;
+                                    border: 2px solid white;
+                                "></div>
+                            </div>
+                            <style>
+                                @keyframes pulse {
+                                    0% {
+                                        transform: translate(-50%, -50%) scale(1);
+                                        opacity: 1;
+                                    }
+                                    100% {
+                                        transform: translate(-50%, -50%) scale(2);
+                                        opacity: 0;
+                                    }
+                                }
+                            </style>
+                        `,
+                        map: kakaoMap,
+                        zIndex: 10
                     });
                     
                     kakaoMap.setCenter(myPosition);

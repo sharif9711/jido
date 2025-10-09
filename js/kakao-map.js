@@ -254,12 +254,12 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
         </div>
     `;
 
-    // 라벨을 마커 위쪽에 배치 (마커 상단과 라벨 상단 정렬)
+    // 라벨을 마커 오른쪽에 배치 (높이는 마커 중앙)
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
         content: labelContent,
-        xAnchor: 0.5,    // 중앙 정렬
-        yAnchor: 1.5,    // 마커 위쪽에 배치 (마커 높이 52px 고려)
+        xAnchor: -0.3,   // 마커 오른쪽으로 배치
+        yAnchor: 0.5,    // 마커 중앙 높이에 정렬
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
@@ -471,19 +471,29 @@ function showBottomInfoPanel(rowData, markerIndex) {
                     <h3 class="text-xl font-bold text-slate-900 mb-2">
                         ${data.순번}. ${data.이름 || '이름없음'}
                     </h3>
-                    <div class="flex flex-wrap gap-4 text-sm text-slate-600">
+                    <div class="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
                         <a href="tel:${data.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 transition-colors ${!data.연락처 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
                             <span class="underline">${data.연락처 || '-'}</span>
                         </a>
-                        <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat || 0}, ${data.lng || 0})" class="flex items-center gap-2 hover:text-blue-600 transition-colors cursor-pointer">
+                        <div class="flex items-center gap-2 text-slate-600">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                                 <circle cx="12" cy="10" r="3"></circle>
                             </svg>
-                            <span class="underline">${data.주소}</span>
+                            <span class="text-xs">${data.주소}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat || 0}, ${data.lng || 0})" 
+                                class="flex-1 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            카카오내비
                         </button>
                     </div>
                 </div>

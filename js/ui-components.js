@@ -212,7 +212,7 @@ function getProjectDetailHTML() {
                 </div>
 
                 <!-- 마커 목록 패널 -->
-                <div id="markerListPanel" class="absolute top-4 left-[304px] z-10 bg-white rounded-lg shadow-xl w-80 max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
+                <div id="markerListPanel" class="absolute top-4 left-[304px] z-10 bg-white rounded-lg shadow-xl w-80 max-w-[calc(100vw-320px)] max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
                     <div class="p-4 border-b border-slate-200 flex items-center justify-between">
                         <h3 class="font-bold text-slate-900">마커 목록</h3>
                         <button onclick="toggleMarkerList()" class="p-1 hover:bg-slate-100 rounded">
