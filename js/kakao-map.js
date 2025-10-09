@@ -1,19 +1,4 @@
-function saveMemo() {
-    const modal = document.getElementById('memoModal');
-    const markerIndex = parseInt(modal.dataset.markerIndex);
-    const memoText = document.getElementById('memoInput').value.trim();
-    
-    if (!memoText || !kakaoMarkers[markerIndex]) {
-        alert('메모 내용을 입력해주세요.');
-        return;
-    }
-    
-    const markerData = kakaoMarkers[markerIndex].rowData;
-    
-    if (!markerData.메모) {
-        markerData.메모 = [];
-    }
-    // 카카오맵 관련 함수
+// 카카오맵 관련 함수
 
 var kakaoMap = null;
 var kakaoMarkers = [];
