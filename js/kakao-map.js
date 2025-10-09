@@ -41,11 +41,19 @@ function geocodeAddressKakao(address) {
         }
         geocoder.addressSearch(address, function(result, status) {
             if (status === kakao.maps.services.Status.OK) {
+                // 우편번호 추출 (도로명 주소 우선, 없으면 지번 주소)
+                let zipCode = '';
+                if (result[0].road_address && result[0].road_address.zone_no) {
+                    zipCode = result[0].road_address.zone_no;
+                } else if (result[0].address && result[0].address.zip_code) {
+                    zipCode = result[0].address.zip_code;
+                }
+                
                 resolve({
                     lat: parseFloat(result[0].y),
                     lng: parseFloat(result[0].x),
                     address: address,
-                    zipCode: result[0].road_address ? result[0].road_address.zone_no : (result[0].address ? result[0].address.zip_code : '')
+                    zipCode: zipCode
                 });
             } else {
                 resolve(null);
@@ -94,15 +102,18 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    // 이름을 마커 위쪽에 표시 (더 위로 올림)
-    const labelBg = 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
-    const labelColor = '#1e293b';
+    // 이름을 마커 위쪽에 표시 - 중복 주소면 빨간색
+    const labelBg = isDuplicate 
+        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.8))' 
+        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
+    const labelColor = isDuplicate ? '#ffffff' : '#1e293b';
+    const labelBorder = isDuplicate ? 'rgba(255, 100, 100, 0.8)' : 'rgba(255, 255, 255, 0.9)';
     
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
-        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid rgba(255,255,255,0.9);pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
+        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid ${labelBorder};pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
         xAnchor: 0.5,
-        yAnchor: 2.2,
+        yAnchor: 2.6,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
@@ -176,9 +187,9 @@ async function displayProjectOnKakaoMap(projectData) {
                 });
                 
                 // 우편번호 정보를 원본 데이터에 저장
-                if (coord.zipCode && coord.zipCode !== '') {
-                    const originalRow = currentProject.data.find(r => r.id === row.id);
-                    if (originalRow && !originalRow.우편번호) {
+                const originalRow = currentProject.data.find(r => r.id === row.id);
+                if (originalRow) {
+                    if (coord.zipCode && coord.zipCode !== '') {
                         originalRow.우편번호 = coord.zipCode;
                     }
                 }
@@ -191,6 +202,17 @@ async function displayProjectOnKakaoMap(projectData) {
             loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
         }
         await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    // 우편번호가 업데이트되었으므로 프로젝트 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+    
+    // 보고서 테이블도 업데이트
+    if (typeof renderReportTable === 'function') {
+        renderReportTable();
     }
 
     if (!window.mapClickListenerRegistered) {
