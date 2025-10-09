@@ -93,49 +93,13 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    // 마커와 라벨을 하나로 감싸는 캡슐 디자인
-    const capsuleBg = isDuplicate 
-        ? 'linear-gradient(135deg, rgba(239,68,68,0.9), rgba(220,38,38,0.95))' 
-        : 'linear-gradient(135deg, rgba(59,130,246,0.95), rgba(37,99,235,0.98))';
-    const capsuleBorder = isDuplicate ? 'rgba(239,68,68,0.8)' : 'rgba(59,130,246,0.8)';
+    const labelBg = isDuplicate ? 'linear-gradient(135deg, rgba(239,68,68,0.85), rgba(220,38,38,0.9))' : 'linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5))';
+    const labelColor = isDuplicate ? 'white' : '#1e293b';
     
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
-        content: `<div style="
-            display:flex;
-            align-items:center;
-            gap:8px;
-            background:${capsuleBg};
-            backdrop-filter:blur(20px);
-            padding:4px 12px 4px 4px;
-            border-radius:25px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.3);
-            border:2px solid ${capsuleBorder};
-            pointer-events:none;
-            white-space:nowrap;
-        ">
-            <div style="
-                width:32px;
-                height:32px;
-                background:white;
-                border-radius:50%;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-weight:bold;
-                font-size:12px;
-                color:#1e293b;
-                box-shadow:0 2px 4px rgba(0,0,0,0.1);
-            ">${rowData.순번}</div>
-            <span style="
-                color:white;
-                font-size:13px;
-                font-weight:700;
-                text-shadow:0 1px 2px rgba(0,0,0,0.2);
-                letter-spacing:0.3px;
-            ">${rowData.이름 || '이름없음'}</span>
-        </div>`,
-        xAnchor: -0.5,
+        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 8px 32px rgba(31,38,135,0.15);border:2px solid rgba(255,255,255,0.8);pointer-events:none">${rowData.순번}. ${rowData.이름 || '이름없음'}</div>`,
+        xAnchor: -0.3,
         yAnchor: 0.5,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
@@ -279,15 +243,13 @@ function showBottomInfoPanel(rowData, markerIndex) {
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                         <span class="underline">${data.연락처 || '-'}</span>
                     </a>
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <span class="text-xs truncate">${data.주소}</span>
-                        <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat}, ${data.lng})" 
-                                class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors flex-shrink-0" 
-                                title="카카오내비">
-                            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                <circle cx="12" cy="10" r="3"/>
+                    <div class="flex items-center gap-2">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span class="text-xs">${data.주소}</span>
+                        <button onclick="openKakaoNavi('${data.주소.replace(/'/g, "\\'")}', ${data.lat}, ${data.lng})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors" title="카카오내비로 안내">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                             </svg>
                         </button>
                     </div>
@@ -333,11 +295,16 @@ function hideBottomInfoPanel() {
     currentDisplayedMarkers = [];
 }
 
-function openKakaoNavi(name, lat, lng) {
+function openKakaoNavi(address, lat, lng) {
     if (!lat || !lng) { alert('위치 정보가 없습니다.'); return; }
-    const naviUrl = `kakaonavi://route?ep=${lng},${lat}&by=ROADMAP&name=${encodeURIComponent(name)}`;
-    const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+    
+    // 주소를 목적지 이름으로 사용
+    const destination = address || '목적지';
+    const naviUrl = `kakaonavi://route?ep=${lng},${lat}&by=ROADMAP&name=${encodeURIComponent(destination)}`;
+    const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(destination)},${lat},${lng}`;
+    
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     if (isMobile) {
         window.location.href = naviUrl;
         setTimeout(() => window.open(webNaviUrl, '_blank'), 1000);
@@ -408,24 +375,18 @@ function saveMemo() {
     const row = currentProject.data.find(r => r.id === markerData.id);
     if (row) {
         row.메모 = markerData.메모;
-        const memoNumber = markerData.메모.length;
-        const memoEntry = `${memoNumber}. ${memoText} (${timeStr})`;
+        const memoEntry = `${markerData.메모.length}. ${memoText} (${timeStr})`;
         
-        if (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') {
-            row.기록사항 = memoEntry;
-        } else {
-            row.기록사항 = row.기록사항 + '\n' + memoEntry;
-        }
+        // 줄바꿈을 두 번 추가 (\n\n)
+        row.기록사항 = (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') 
+            ? memoEntry 
+            : row.기록사항 + '\n\n' + memoEntry;
         
-        if (typeof renderReportTable === 'function') {
-            renderReportTable();
-        }
+        if (typeof renderReportTable === 'function') renderReportTable();
     }
     
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);
-    if (projectIndex !== -1) {
-        projects[projectIndex] = currentProject;
-    }
+    if (projectIndex !== -1) projects[projectIndex] = currentProject;
     
     closeMemoModal();
     showBottomInfoPanel(markerData, markerIndex);
