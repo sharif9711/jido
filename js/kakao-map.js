@@ -440,6 +440,15 @@ async function displayProjectOnKakaoMap(projectData) {
     console.log('=== displayProjectOnKakaoMap END ===');
     console.log('Total success:', successCount, '/', addressesWithData.length);
     
+    // 지도 클릭 이벤트 등록 (한 번만)
+    if (!window.mapClickListenerRegistered) {
+        kakao.maps.event.addListener(kakaoMap, 'click', function(e) {
+            console.log('Map clicked');
+            hideBottomInfoPanel();
+        });
+        window.mapClickListenerRegistered = true;
+    }
+    
     // 지도 상단에 결과 메시지 표시
     if (loadingStatus) {
         loadingStatus.style.display = 'block';

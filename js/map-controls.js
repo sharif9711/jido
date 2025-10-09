@@ -360,25 +360,19 @@ async function drawRoadRoute(start, waypoints) {
         window.routeArrows = [];
     }
     
-    // 1. 외곽선 (테두리) - 진한 파란색
-    const outlinePolyline = new kakao.maps.Polyline({
-        map: kakaoMap,
-        path: pathCoords,
-        strokeWeight: 10,
-        strokeColor: '#0066CC',
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid',
-        zIndex: 1
-    });
+    // 경로 선 그리기 (카카오 기본 네비게이션 화살표 스타일)
+    if (routePolyline) {
+        routePolyline.setMap(null);
+    }
     
-    // 2. 메인 경로선 - 밝은 파란색 (네비게이션 스타일)
     routePolyline = new kakao.maps.Polyline({
         map: kakaoMap,
         path: pathCoords,
-        strokeWeight: 7,
+        strokeWeight: 6,
         strokeColor: '#4A90E2',
-        strokeOpacity: 1,
+        strokeOpacity: 0.9,
         strokeStyle: 'solid',
+        endArrow: true,  // 카카오맵 기본 화살표
         zIndex: 2
     });
     
@@ -387,115 +381,6 @@ async function drawRoadRoute(start, waypoints) {
         window.routeArrows = [];
     }
     window.routeArrows.push(outlinePolyline);
-    
-    // 3. 화살표 마커 추가 (일정 간격으로)
-    const arrowInterval = Math.floor(pathCoords.length / (allPoints.length * 2)); // 구간당 2개씩
-    
-    for (let i = arrowInterval; i < pathCoords.length - 1; i += arrowInterval) {
-        const current = pathCoords[i];
-        const next = pathCoords[Math.min(i + 5, pathCoords.length - 1)]; // 5칸 앞
-        
-        // 방향 계산
-        const angle = calculateAngle(current, next);
-        
-        // 화살표 커스텀 오버레이
-        const arrowContent = `
-            <div style="
-                width: 0;
-                height: 0;
-                border-left: 8px solid transparent;
-                border-right: 8px solid transparent;
-                border-bottom: 16px solid #FFFFFF;
-                transform: rotate(${angle}deg);
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-            "></div>
-        `;
-        
-        const arrowOverlay = new kakao.maps.CustomOverlay({
-            map: kakaoMap,
-            position: current,
-            content: arrowContent,
-            zIndex: 3
-        });
-        
-        window.routeArrows.push(arrowOverlay);
-    }
-    
-    // 4. 시작점 마커 (내 위치)
-    const startMarkerContent = `
-        <div style="
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: 4px solid white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            font-size: 20px;
-        ">
-            🚗
-        </div>
-    `;
-    
-    const startOverlay = new kakao.maps.CustomOverlay({
-        map: kakaoMap,
-        position: pathCoords[0],
-        content: startMarkerContent,
-        zIndex: 10
-    });
-    
-    window.routeArrows.push(startOverlay);
-    
-    // 5. 각 경유지에 순번 표시
-    for (let i = 0; i < waypoints.length; i++) {
-        const waypointPos = new kakao.maps.LatLng(waypoints[i].lat, waypoints[i].lng);
-        
-        const waypointContent = `
-            <div style="
-                width: 32px;
-                height: 32px;
-                background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
-                border: 3px solid white;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-            ">
-                ${i + 1}
-            </div>
-        `;
-        
-        const waypointOverlay = new kakao.maps.CustomOverlay({
-            map: kakaoMap,
-            position: waypointPos,
-            content: waypointContent,
-            zIndex: 9
-        });
-        
-        window.routeArrows.push(waypointOverlay);
-    }
-}
-
-// 두 점 사이의 각도 계산 (화살표 방향)
-function calculateAngle(point1, point2) {
-    const lat1 = point1.getLat();
-    const lng1 = point1.getLng();
-    const lat2 = point2.getLat();
-    const lng2 = point2.getLng();
-    
-    const dy = lat2 - lat1;
-    const dx = lng2 - lng1;
-    
-    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-    angle = angle + 90; // 위쪽이 0도가 되도록 조정
-    
-    return angle;
 }
 
 // 두 지점 간 거리 계산 (Haversine formula)
