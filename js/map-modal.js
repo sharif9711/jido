@@ -13,6 +13,14 @@ function showMapView() {
             // 기존 지도가 있으면 relayout 호출
             kakaoMap.relayout();
         }
+        
+        // 지도 초기화 후 자동으로 마커 표시
+        setTimeout(() => {
+            if (currentProject && currentProject.data) {
+                console.log('Auto-displaying markers on map...');
+                displayProjectOnKakaoMap(currentProject.data);
+            }
+        }, 500);
     }, 300);
 }
 
