@@ -10,8 +10,10 @@ function showMapView() {
         if (!kakaoMap) {
             initKakaoMap();
         } else {
-            // 기존 지도가 있으면 relayout 호출
-            kakaoMap.relayout();
+            // 기존 지도가 있으면 relayout 호출 (안전하게)
+            if (kakaoMap && typeof kakaoMap.relayout === 'function') {
+                kakaoMap.relayout();
+            }
         }
         
         // 지도 초기화 후 자동으로 마커 표시

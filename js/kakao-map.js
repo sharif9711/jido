@@ -61,9 +61,11 @@ function initKakaoMap() {
 
         console.log('Kakao Map initialized with controls');
         
-        // 지도 크기 재조정
+        // 지도 크기 재조정 - relayout 제거
         setTimeout(() => {
-            kakaoMap.relayout();
+            if (kakaoMap && kakaoMap.relayout) {
+                kakaoMap.relayout();
+            }
         }, 100);
         
     } catch (error) {
@@ -395,7 +397,9 @@ async function displayProjectOnKakaoMap(projectData) {
         kakaoMap.setBounds(bounds);
         
         setTimeout(() => {
-            kakaoMap.relayout();
+            if (kakaoMap && kakaoMap.relayout) {
+                kakaoMap.relayout();
+            }
         }, 100);
     }
 
