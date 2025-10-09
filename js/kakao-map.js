@@ -240,16 +240,11 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
     `;
 
     // 라벨을 마커 오른쪽, 상단 정렬에 배치
-    const labelPosition = new kakao.maps.LatLng(
-        coordinate.lat + 0.00005,  // 약간 위로
-        coordinate.lng + 0.0003    // 오른쪽으로
-    );
-
     const customOverlay = new kakao.maps.CustomOverlay({
-        position: labelPosition,
+        position: markerPosition,
         content: labelContent,
-        xAnchor: 0,
-        yAnchor: 0.5,
+        xAnchor: -0.7,   // 왼쪽으로 (마커 폭의 70% 지점)
+        yAnchor: 0.2,    // 위쪽으로 (상단 정렬)
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
@@ -418,65 +413,126 @@ function onMapTabActivated() {
 
 // 하단 정보창 표시
 var currentMarkerIndex = null;
+var currentDisplayedMarkers = []; // 현재 표시 중인 마커들
 
 function showBottomInfoPanel(rowData, markerIndex) {
     currentMarkerIndex = markerIndex;
+    
+    // 같은 주소의 마커들 찾기
+    const sameAddressMarkers = [];
+    kakaoMarkers.forEach((item, index) => {
+        if (item.rowData.주소 === rowData.주소) {
+            sameAddressMarkers.push({
+                index: index,
+                data: item.rowData
+            });
+        }
+    });
+    
+    currentDisplayedMarkers = sameAddressMarkers;
+    
     const panel = document.getElementById('bottomInfoPanel');
     if (!panel) return;
     
-    // 메모 데이터 가져오기
-    const memos = rowData.메모 || [];
-    const memosHtml = memos.length > 0 
-        ? memos.map((memo, idx) => `
-            <div class="text-xs text-slate-600 mb-1">
-                <span class="font-semibold">${idx + 1}.</span> ${memo.내용} 
-                <span class="text-slate-400">(${memo.시간})</span>
+    // 여러 마커 정보 표시
+    const markersHtml = sameAddressMarkers.map((markerInfo, idx) => {
+        const data = markerInfo.data;
+        const mIdx = markerInfo.index;
+        
+        // 메모 데이터 가져오기
+        const memos = data.메모 || [];
+        const memosHtml = memos.length > 0 
+            ? memos.map((memo, memoIdx) => `
+                <div class="text-xs text-slate-600 mb-1">
+                    <span class="font-semibold">${memoIdx + 1}.</span> ${memo.내용} 
+                    <span class="text-slate-400">(${memo.시간})</span>
+                </div>
+              `).join('')
+            : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+        
+        return `
+            <div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
+                <div class="mb-4 pr-8">
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">
+                        ${data.순번}. ${data.이름 || '이름없음'}
+                    </h3>
+                    <div class="flex flex-wrap gap-4 text-sm text-slate-600">
+                        <a href="tel:${data.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 transition-colors ${!data.연락처 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <span class="underline">${data.연락처 || '-'}</span>
+                        </a>
+                        <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat || 0}, ${data.lng || 0})" class="flex items-center gap-2 hover:text-blue-600 transition-colors cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span class="underline">${data.주소}</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
+                    <div class="flex gap-2">
+                        <button onclick="changeMarkerStatus(${mIdx}, '예정')" 
+                                class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '예정' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                            예정
+                        </button>
+                        <button onclick="changeMarkerStatus(${mIdx}, '완료')" 
+                                class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '완료' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                            완료
+                        </button>
+                        <button onclick="changeMarkerStatus(${mIdx}, '보류')" 
+                                class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '보류' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                            보류
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-slate-700">메모</label>
+                        <button onclick="openMemoModal(${mIdx})" 
+                                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                            + 메모 추가
+                        </button>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 max-h-32 overflow-y-auto">
+                        ${memosHtml}
+                    </div>
+                </div>
             </div>
-          `).join('')
-        : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+        `;
+    }).join('');
     
     panel.innerHTML = `
-        <div class="bg-white rounded-t-2xl shadow-2xl p-6 max-w-4xl mx-auto relative">
-            <button onclick="hideBottomInfoPanel()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+        <div class="bg-white rounded-t-2xl shadow-2xl max-w-4xl mx-auto relative">
+            <button onclick="hideBottomInfoPanel()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg transition-colors z-10">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
             
-            <div class="mb-4 pr-8">
-                <h3 class="text-xl font-bold text-slate-900 mb-2">
-                    ${rowData.순번}. ${rowData.이름 || '이름없음'}
-                </h3>
-                <div class="flex flex-wrap gap-4 text-sm text-slate-600">
-                    <a href="tel:${rowData.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 transition-colors ${!rowData.연락처 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                        <span class="underline">${rowData.연락처 || '-'}</span>
-                    </a>
-                    <button onclick="openKakaoNavi('${(rowData.이름 || '목적지').replace(/'/g, "\\'")}', ${rowData.lat || 0}, ${rowData.lng || 0})" class="flex items-center gap-2 hover:text-blue-600 transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <span class="underline">${rowData.주소}</span>
-                    </button>
+            ${sameAddressMarkers.length > 1 ? `
+                <div class="bg-blue-50 px-6 py-3 border-b border-blue-100">
+                    <p class="text-sm text-blue-700 font-medium">
+                        ℹ️ 같은 주소에 ${sameAddressMarkers.length}개의 항목이 있습니다
+                    </p>
                 </div>
-            </div>
+            ` : ''}
             
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
-                <div class="flex gap-2">
-                    <button onclick="changeMarkerStatus(${markerIndex}, '예정')" 
-                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '예정' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                        예정
-                    </button>
-                    <button onclick="changeMarkerStatus(${markerIndex}, '완료')" 
-                            class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '완료' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                        완료
-                    </button>
-                    <button onclick="changeMarkerStatus(${markerIndex}, '보류')" 
+            <div class="max-h-[70vh] overflow-y-auto">
+                ${markersHtml}
+            </div>
+        </div>
+    `;
+    
+    panel.style.display = 'block';
+    panel.style.animation = 'slideUp 0.3s ease-out';
+}="changeMarkerStatus(${markerIndex}, '보류')" 
                             class="px-4 py-2 rounded-lg font-medium transition-all ${rowData.상태 === '보류' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
                         보류
                     </button>
@@ -511,6 +567,7 @@ function hideBottomInfoPanel() {
         }, 300);
     }
     currentMarkerIndex = null;
+    currentDisplayedMarkers = [];
 }
 
 // 카카오네비 열기
@@ -542,11 +599,24 @@ function changeMarkerStatus(markerIndex, newStatus) {
     const markerData = kakaoMarkers[markerIndex].rowData;
     markerData.상태 = newStatus;
     
+    // 원본 데이터 업데이트 (보고서에도 반영)
     const row = currentProject.data.find(r => r.id === markerData.id);
     if (row) {
         row.상태 = newStatus;
+        
+        // 보고서 테이블 업데이트
+        if (typeof renderReportTable === 'function') {
+            renderReportTable();
+        }
     }
     
+    // 프로젝트 데이터 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+    
+    // 마커 색상 변경
     const oldMarker = kakaoMarkers[markerIndex];
     oldMarker.marker.setMap(null);
     if (oldMarker.customOverlay) {
@@ -599,14 +669,32 @@ function saveMemo() {
     const now = new Date();
     const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}. ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
+    const memoEntry = `${markerData.메모.length + 1}. ${memoText} (${timeStr})`;
     markerData.메모.push({
         내용: memoText,
         시간: timeStr
     });
     
+    // 원본 데이터 업데이트 (보고서에도 반영)
     const row = currentProject.data.find(r => r.id === markerData.id);
     if (row) {
         row.메모 = markerData.메모;
+        
+        // 기록사항에 추가
+        if (!row.기록사항) {
+            row.기록사항 = '';
+        }
+        
+        if (row.기록사항) {
+            row.기록사항 += '\n' + memoEntry;
+        } else {
+            row.기록사항 = memoEntry;
+        }
+        
+        // 보고서 테이블 업데이트
+        if (typeof renderReportTable === 'function') {
+            renderReportTable();
+        }
     }
     
     closeMemoModal();

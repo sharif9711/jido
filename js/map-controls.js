@@ -186,8 +186,51 @@ function checkDuplicateAddresses(addresses) {
     return addressCount;
 }
 
-// 최적 경로 계산
+// 최적 경로 계산 (ON/OFF 토글)
+var isRouteActive = false;
+
 async function calculateOptimalRoute() {
+    const btn = document.getElementById('optimalRouteBtn');
+    
+    // 이미 경로가 표시되어 있으면 제거 (OFF)
+    if (isRouteActive) {
+        // 경로 제거
+        if (routePolyline) {
+            routePolyline.setMap(null);
+            routePolyline = null;
+        }
+        
+        // 순번 마커 제거
+        routeMarkers.forEach(marker => marker.setMap(null));
+        routeMarkers = [];
+        
+        // 내 위치 마커 제거
+        if (myLocationMarker) {
+            myLocationMarker.setMap(null);
+            myLocationMarker = null;
+        }
+        
+        isRouteActive = false;
+        isGpsActive = false;
+        myCurrentLocation = null;
+        
+        btn.classList.remove('bg-purple-600');
+        btn.classList.add('bg-white', 'text-slate-700');
+        btn.textContent = '🗺️ 최적경로';
+        
+        // GPS 버튼도 초기화
+        const gpsBtn = document.getElementById('toggleGpsBtn');
+        if (gpsBtn) {
+            gpsBtn.classList.remove('bg-green-600', 'text-white');
+            gpsBtn.classList.add('bg-white', 'text-slate-700');
+            gpsBtn.textContent = '📍 GPS';
+        }
+        
+        showMapMessage('경로가 제거되었습니다.', 'info');
+        return;
+    }
+    
+    // 경로 계산 시작 (ON)
     if (!myCurrentLocation) {
         showMapMessage('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.', 'warning');
         return;
@@ -206,19 +249,8 @@ async function calculateOptimalRoute() {
         return;
     }
     
-    const btn = document.getElementById('optimalRouteBtn');
     btn.classList.add('bg-yellow-500', 'text-white');
     btn.textContent = '🔄 계산중...';
-    
-    // 기존 경로 제거
-    if (routePolyline) {
-        routePolyline.setMap(null);
-        routePolyline = null;
-    }
-    
-    // 기존 순번 마커 제거
-    routeMarkers.forEach(marker => marker.setMap(null));
-    routeMarkers = [];
     
     // 최적 경로 계산
     const visited = new Array(pendingMarkers.length).fill(false);
@@ -261,9 +293,10 @@ async function calculateOptimalRoute() {
     // 경로 그리기
     await drawRoadRoute(myCurrentLocation, routeOrder);
     
+    isRouteActive = true;
     btn.classList.remove('bg-yellow-500');
     btn.classList.add('bg-purple-600', 'text-white');
-    btn.textContent = '🗺️ 경로표시';
+    btn.textContent = '✓ 경로표시중';
     
     showMapMessage(`최적 경로 완성! 총 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
 }
