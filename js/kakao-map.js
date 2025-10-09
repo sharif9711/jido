@@ -53,44 +53,28 @@ function geocodeAddressKakao(address) {
     });
 }
 
-// 마커 이미지 생성 - 캡슐 모양 (마커 + 이름)
-function createNumberedMarkerImage(number, name, status) {
+// 마커 이미지 생성
+function createNumberedMarkerImage(number, status) {
     let baseColor = '#3b82f6', shadowColor = '#1e40af';
     if (status === '완료') { baseColor = '#10b981'; shadowColor = '#047857'; }
     if (status === '보류') { baseColor = '#f59e0b'; shadowColor = '#d97706'; }
-    
-    const displayName = name || '이름없음';
-    const textWidth = Math.max(displayName.length * 10, 60);
-    const totalWidth = 40 + textWidth + 10;
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="52" viewBox="0 0 ${totalWidth} 52">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
         <defs>
             <linearGradient id="g${number}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:${baseColor}"/>
                 <stop offset="100%" style="stop-color:${shadowColor}"/>
             </linearGradient>
-            <filter id="shadow${number}" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-                <feOffset dx="1" dy="2" result="offsetblur"/>
-                <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
-                <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
         </defs>
-        <!-- 그림자 -->
         <ellipse cx="20" cy="48" rx="12" ry="3" fill="rgba(0,0,0,0.2)"/>
-        <!-- 핀 모양 -->
-        <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="url(#g${number})" stroke="${shadowColor}" stroke-width="1.5" filter="url(#shadow${number})"/>
+        <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="url(#g${number})" stroke="${shadowColor}" stroke-width="1.5"/>
         <circle cx="20" cy="18" r="12" fill="white" opacity="0.95"/>
         <text x="20" y="23" font-family="Arial" font-size="12" font-weight="bold" fill="${shadowColor}" text-anchor="middle">${number}</text>
-        <!-- 캡슐 라벨 -->
-        <rect x="45" y="13" width="${textWidth}" height="24" rx="12" fill="white" opacity="0.95" stroke="${shadowColor}" stroke-width="2"/>
-        <rect x="45" y="13" width="${textWidth}" height="24" rx="12" fill="url(#g${number})" opacity="0.15"/>
-        <text x="${45 + textWidth/2}" y="28" font-family="Arial" font-size="11" font-weight="bold" fill="${shadowColor}" text-anchor="middle">${displayName}</text>
     </svg>`;
     
     return new kakao.maps.MarkerImage(
         URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })),
-        new kakao.maps.Size(totalWidth, 52),
+        new kakao.maps.Size(40, 52),
         { offset: new kakao.maps.Point(20, 52) }
     );
 }
@@ -109,13 +93,49 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    const labelBg = isDuplicate ? 'linear-gradient(135deg, rgba(239,68,68,0.85), rgba(220,38,38,0.9))' : 'linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5))';
-    const labelColor = isDuplicate ? 'white' : '#1e293b';
+    // 마커와 라벨을 하나로 감싸는 캡슐 디자인
+    const capsuleBg = isDuplicate 
+        ? 'linear-gradient(135deg, rgba(239,68,68,0.9), rgba(220,38,38,0.95))' 
+        : 'linear-gradient(135deg, rgba(59,130,246,0.95), rgba(37,99,235,0.98))';
+    const capsuleBorder = isDuplicate ? 'rgba(239,68,68,0.8)' : 'rgba(59,130,246,0.8)';
     
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
-        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 8px 32px rgba(31,38,135,0.15);border:2px solid rgba(255,255,255,0.8);pointer-events:none">${rowData.순번}. ${rowData.이름 || '이름없음'}</div>`,
-        xAnchor: -0.3,
+        content: `<div style="
+            display:flex;
+            align-items:center;
+            gap:8px;
+            background:${capsuleBg};
+            backdrop-filter:blur(20px);
+            padding:4px 12px 4px 4px;
+            border-radius:25px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.3);
+            border:2px solid ${capsuleBorder};
+            pointer-events:none;
+            white-space:nowrap;
+        ">
+            <div style="
+                width:32px;
+                height:32px;
+                background:white;
+                border-radius:50%;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-weight:bold;
+                font-size:12px;
+                color:#1e293b;
+                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+            ">${rowData.순번}</div>
+            <span style="
+                color:white;
+                font-size:13px;
+                font-weight:700;
+                text-shadow:0 1px 2px rgba(0,0,0,0.2);
+                letter-spacing:0.3px;
+            ">${rowData.이름 || '이름없음'}</span>
+        </div>`,
+        xAnchor: -0.4,
         yAnchor: 0.5,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
@@ -259,11 +279,19 @@ function showBottomInfoPanel(rowData, markerIndex) {
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                         <span class="underline">${data.연락처 || '-'}</span>
                     </a>
-                    <div class="flex items-center gap-2"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="text-xs">${data.주소}</span></div>
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span class="text-xs truncate">${data.주소}</span>
+                        <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat}, ${data.lng})" 
+                                class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors flex-shrink-0" 
+                                title="카카오내비">
+                            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <button onclick="openKakaoNavi('${(data.이름 || '목적지').replace(/'/g, "\\'")}', ${data.lat}, ${data.lng})" class="w-full px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-lg font-medium text-sm flex items-center justify-center gap-2">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>카카오내비
-                </button>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
