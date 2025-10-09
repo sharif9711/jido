@@ -1,4 +1,19 @@
-// 카카오맵 관련 함수
+function saveMemo() {
+    const modal = document.getElementById('memoModal');
+    const markerIndex = parseInt(modal.dataset.markerIndex);
+    const memoText = document.getElementById('memoInput').value.trim();
+    
+    if (!memoText || !kakaoMarkers[markerIndex]) {
+        alert('메모 내용을 입력해주세요.');
+        return;
+    }
+    
+    const markerData = kakaoMarkers[markerIndex].rowData;
+    
+    if (!markerData.메모) {
+        markerData.메모 = [];
+    }
+    // 카카오맵 관련 함수
 
 var kakaoMap = null;
 var kakaoMarkers = [];
@@ -663,8 +678,9 @@ function saveMemo() {
     if (row) {
         row.메모 = markerData.메모;
         
-        // 기록사항에 추가
-        const memoEntry = `${timeStr} - ${memoText}`;
+        // 기록사항에 추가 - 메모 번호와 함께 기록
+        const memoNumber = markerData.메모.length;
+        const memoEntry = `${memoNumber}. ${memoText} (${timeStr})`;
         
         if (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') {
             row.기록사항 = memoEntry;

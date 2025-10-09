@@ -193,13 +193,16 @@ function getProjectDetailHTML() {
                 <div id="mapLoadingStatus" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 px-4 py-2 text-sm text-white bg-slate-900/80 rounded-lg backdrop-blur-sm" style="display: none;"></div>
                 
                 <!-- 왼쪽 상단 컨트롤 버튼들 -->
-                <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
-                    <button id="toggleListBtn" onclick="toggleMarkerList()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
-                        📋 목록
-                    </button>
+                <div class="absolute top-4 left-4 z-10 grid grid-cols-2 gap-2" style="width: 280px;">
+                    <!-- 첫 번째 줄 -->
                     <button id="toggleGpsBtn" onclick="toggleMyLocation()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
                         📍 GPS
                     </button>
+                    <button id="toggleListBtn" onclick="toggleMarkerList()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
+                        📋 목록
+                    </button>
+                    
+                    <!-- 두 번째 줄 -->
                     <button id="optimalRouteBtn" onclick="calculateOptimalRoute()" class="px-4 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200">
                         🗺️ 최적경로
                     </button>
@@ -209,7 +212,7 @@ function getProjectDetailHTML() {
                 </div>
 
                 <!-- 마커 목록 패널 -->
-                <div id="markerListPanel" class="absolute top-4 left-48 z-10 bg-white rounded-lg shadow-xl w-80 max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
+                <div id="markerListPanel" class="absolute top-4 left-[304px] z-10 bg-white rounded-lg shadow-xl w-80 max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
                     <div class="p-4 border-b border-slate-200 flex items-center justify-between">
                         <h3 class="font-bold text-slate-900">마커 목록</h3>
                         <button onclick="toggleMarkerList()" class="p-1 hover:bg-slate-100 rounded">
