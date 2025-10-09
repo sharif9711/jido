@@ -236,20 +236,21 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
         showBottomInfoPanel(rowData, index);
     });
 
-    // 마커 호버 이벤트
-    kakao.maps.event.addListener(marker, 'mouseover', function() {
-        infowindow.open(kakaoMap, marker);
-    });
-
-    kakao.maps.event.addListener(marker, 'mouseout', function() {
-        infowindow.close();
-    });
-    
-    // 지도 클릭 이벤트 (한번만 등록)
-    if (kakaoMarkers.length === 0) {
+    // 마커 호버 이벤트 제거 (호버 인포윈도우 비활성화)
+    // kakao.maps.event.addListener(marker, 'mouseover', function() {
+    //     infowindow.open(kakaoMap, marker);
+    // });
+    // 
+    // kakao.maps.event.addListener(marker, 'mouseout', function() {
+    //     infowindow.close();
+    // });
+    // 지도 클릭 이벤트 (빈 곳 클릭 시 정보창 닫기)
+    // 이미 등록되어 있는지 확인
+    if (!window.mapClickListenerRegistered) {
         kakao.maps.event.addListener(kakaoMap, 'click', function() {
             hideBottomInfoPanel();
         });
+        window.mapClickListenerRegistered = true;
     }
 
     // 커스텀 라벨 생성 (이름 표시) - 투명 유리 굴절 캡슐
@@ -278,7 +279,7 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate) {
             border: 2px solid ${labelBorder};
             letter-spacing: 0.5px;
             position: relative;
-            margin-left: 45px;
+            margin-left: 25px;
             text-shadow: ${isDuplicate ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(255,255,255,0.8)'};
         ">
             <div style="

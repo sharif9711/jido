@@ -202,12 +202,26 @@ function checkDuplicateAddresses(addresses) {
 // 최적 경로 계산 (TSP 근사 알고리즘 - Nearest Neighbor)
 async function calculateOptimalRoute() {
     if (!myCurrentLocation) {
-        alert('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.');
+        showMapMessage('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.', 'warning');
         return;
     }
     
     if (markerListData.length === 0) {
-        alert('표시할 마커가 없습니다.');
+        showMapMessage('표시할 마커가 없습니다.', 'warning');
+        return;
+    }
+    
+    // "예정" 상태인 마커만 필터링
+    const pendingMarkers = markerListData.filter(marker => {
+        // 원본 데이터에서 상태 확인
+        const originalData = currentProject.data.find(row => 
+            row.순번 === marker.순번 && row.주소 === marker.주소
+        );
+        return originalData && originalData.상태 === '예정';
+    });
+    
+    if (pendingMarkers.length === 0) {
+        showMapMessage('예정 상태인 마커가 없습니다. (완료/보류 제외)', 'warning');
         return;
     }
     
@@ -226,20 +240,20 @@ async function calculateOptimalRoute() {
         window.routeArrows = [];
     }
     
-    // 최적 경로 계산 (Nearest Neighbor 알고리즘)
-    const visited = new Array(markerListData.length).fill(false);
+    // 최적 경로 계산 (Nearest Neighbor 알고리즘) - 예정 상태만
+    const visited = new Array(pendingMarkers.length).fill(false);
     const routeOrder = [];
     let currentPos = myCurrentLocation;
     
-    for (let i = 0; i < markerListData.length; i++) {
+    for (let i = 0; i < pendingMarkers.length; i++) {
         let nearestIndex = -1;
         let minDistance = Infinity;
         
-        for (let j = 0; j < markerListData.length; j++) {
+        for (let j = 0; j < pendingMarkers.length; j++) {
             if (!visited[j]) {
                 const distance = getDistance(
                     currentPos.lat, currentPos.lng,
-                    markerListData[j].lat, markerListData[j].lng
+                    pendingMarkers[j].lat, pendingMarkers[j].lng
                 );
                 
                 if (distance < minDistance) {
@@ -252,12 +266,12 @@ async function calculateOptimalRoute() {
         if (nearestIndex !== -1) {
             visited[nearestIndex] = true;
             routeOrder.push({
-                lat: markerListData[nearestIndex].lat,
-                lng: markerListData[nearestIndex].lng
+                lat: pendingMarkers[nearestIndex].lat,
+                lng: pendingMarkers[nearestIndex].lng
             });
             currentPos = { 
-                lat: markerListData[nearestIndex].lat, 
-                lng: markerListData[nearestIndex].lng 
+                lat: pendingMarkers[nearestIndex].lat, 
+                lng: pendingMarkers[nearestIndex].lng 
             };
         }
     }
@@ -270,7 +284,7 @@ async function calculateOptimalRoute() {
     btn.textContent = '🗺️ 경로표시';
     
     // 지도 상단에 메시지 표시
-    showMapMessage(`최적 경로 완성! 총 ${markerListData.length}개 지점`, 'success');
+    showMapMessage(`최적 경로 완성! 총 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
 }
 
 // 실제 도로를 따라 경로 그리기 (네비게이션 스타일)
