@@ -32,7 +32,7 @@ function initKakaoMap() {
     }
 }
 
-// 주소를 좌표로 변환
+// 주소를 좌표로 변환 (우편번호 정보도 함께 가져오기)
 function geocodeAddressKakao(address) {
     return new Promise((resolve) => {
         if (!address || !geocoder) {
@@ -44,7 +44,8 @@ function geocodeAddressKakao(address) {
                 resolve({
                     lat: parseFloat(result[0].y),
                     lng: parseFloat(result[0].x),
-                    address: address
+                    address: address,
+                    zipCode: result[0].road_address ? result[0].road_address.zone_no : (result[0].address ? result[0].address.zip_code : '')
                 });
             } else {
                 resolve(null);
@@ -93,7 +94,7 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    // 이름을 마커 위쪽에 표시
+    // 이름을 마커 위쪽에 표시 (더 위로 올림)
     const labelBg = 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
     const labelColor = '#1e293b';
     
@@ -101,7 +102,7 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
         position: markerPosition,
         content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid rgba(255,255,255,0.9);pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
         xAnchor: 0.5,
-        yAnchor: 1.8,
+        yAnchor: 2.2,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
@@ -173,6 +174,15 @@ async function displayProjectOnKakaoMap(projectData) {
                     순번: row.순번, 이름: row.이름, 연락처: row.연락처, 주소: row.주소,
                     상태: row.상태, lat: coord.lat, lng: coord.lng, isDuplicate
                 });
+                
+                // 우편번호 정보를 원본 데이터에 저장
+                if (coord.zipCode && coord.zipCode !== '') {
+                    const originalRow = currentProject.data.find(r => r.id === row.id);
+                    if (originalRow && !originalRow.우편번호) {
+                        originalRow.우편번호 = coord.zipCode;
+                    }
+                }
+                
                 successCount++;
             }
         }

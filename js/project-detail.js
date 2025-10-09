@@ -91,6 +91,7 @@ function renderReportTable() {
             <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
             <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
             <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
+            <td class="border border-slate-300 px-3 py-2 text-center">${row.우편번호 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">
                 <select onchange="updateReportStatus('${row.id}', this.value)" 
                     class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(row.상태)} border-0 cursor-pointer">

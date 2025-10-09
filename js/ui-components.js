@@ -139,12 +139,13 @@ function getProjectDetailHTML() {
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">이름</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">연락처</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">주소</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">우편번호</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">상태</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">법정동코드</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">PNU코드</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">지목</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">면적</th>
-                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700 w-48">기록사항</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">기록사항</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reportTable"></tbody>
