@@ -103,7 +103,7 @@ function renderReportTable() {
             <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.기록사항 || '-'}</td>
+            <td class="border border-slate-300 px-3 py-2 whitespace-pre-line">${row.기록사항 || '-'}</td>
         </tr>
     `).join('');
 }

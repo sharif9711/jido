@@ -93,15 +93,15 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
 
     kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
 
-    // 이름만 표시하는 간단한 라벨 (기존 상태 캡슐 위치에 배치)
+    // 이름을 마커 위쪽에 표시
     const labelBg = 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
     const labelColor = '#1e293b';
     
     const customOverlay = new kakao.maps.CustomOverlay({
         position: markerPosition,
         content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid rgba(255,255,255,0.9);pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
-        xAnchor: -0.3,
-        yAnchor: 0.5,
+        xAnchor: 0.5,
+        yAnchor: 1.8,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
     });
