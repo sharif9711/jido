@@ -135,7 +135,7 @@ function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerI
                 letter-spacing:0.3px;
             ">${rowData.이름 || '이름없음'}</span>
         </div>`,
-        xAnchor: -0.4,
+        xAnchor: -0.5,
         yAnchor: 0.5,
         map: showLabels ? kakaoMap : null,
         zIndex: 1
@@ -408,15 +408,24 @@ function saveMemo() {
     const row = currentProject.data.find(r => r.id === markerData.id);
     if (row) {
         row.메모 = markerData.메모;
-        const memoEntry = `${markerData.메모.length}. ${memoText} (${timeStr})`;
-        row.기록사항 = (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') 
-            ? memoEntry 
-            : row.기록사항 + '\n' + memoEntry;
-        if (typeof renderReportTable === 'function') renderReportTable();
+        const memoNumber = markerData.메모.length;
+        const memoEntry = `${memoNumber}. ${memoText} (${timeStr})`;
+        
+        if (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') {
+            row.기록사항 = memoEntry;
+        } else {
+            row.기록사항 = row.기록사항 + '\n' + memoEntry;
+        }
+        
+        if (typeof renderReportTable === 'function') {
+            renderReportTable();
+        }
     }
     
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);
-    if (projectIndex !== -1) projects[projectIndex] = currentProject;
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
     
     closeMemoModal();
     showBottomInfoPanel(markerData, markerIndex);

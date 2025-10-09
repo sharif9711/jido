@@ -144,7 +144,7 @@ function getProjectDetailHTML() {
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">PNU코드</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">지목</th>
                                         <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">면적</th>
-                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700">기록사항</th>
+                                        <th class="border border-slate-300 px-3 py-2 font-semibold text-slate-700 w-48">기록사항</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reportTable"></tbody>
