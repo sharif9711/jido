@@ -53,28 +53,44 @@ function geocodeAddressKakao(address) {
     });
 }
 
-// 마커 이미지 생성
-function createNumberedMarkerImage(number, status) {
+// 마커 이미지 생성 - 캡슐 모양 (마커 + 이름)
+function createNumberedMarkerImage(number, name, status) {
     let baseColor = '#3b82f6', shadowColor = '#1e40af';
     if (status === '완료') { baseColor = '#10b981'; shadowColor = '#047857'; }
     if (status === '보류') { baseColor = '#f59e0b'; shadowColor = '#d97706'; }
+    
+    const displayName = name || '이름없음';
+    const textWidth = Math.max(displayName.length * 10, 60);
+    const totalWidth = 40 + textWidth + 10;
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="52" viewBox="0 0 ${totalWidth} 52">
         <defs>
             <linearGradient id="g${number}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:${baseColor}"/>
                 <stop offset="100%" style="stop-color:${shadowColor}"/>
             </linearGradient>
+            <filter id="shadow${number}" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                <feOffset dx="1" dy="2" result="offsetblur"/>
+                <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+                <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
         </defs>
+        <!-- 그림자 -->
         <ellipse cx="20" cy="48" rx="12" ry="3" fill="rgba(0,0,0,0.2)"/>
-        <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="url(#g${number})" stroke="${shadowColor}" stroke-width="1.5"/>
+        <!-- 핀 모양 -->
+        <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="url(#g${number})" stroke="${shadowColor}" stroke-width="1.5" filter="url(#shadow${number})"/>
         <circle cx="20" cy="18" r="12" fill="white" opacity="0.95"/>
         <text x="20" y="23" font-family="Arial" font-size="12" font-weight="bold" fill="${shadowColor}" text-anchor="middle">${number}</text>
+        <!-- 캡슐 라벨 -->
+        <rect x="45" y="13" width="${textWidth}" height="24" rx="12" fill="white" opacity="0.95" stroke="${shadowColor}" stroke-width="2"/>
+        <rect x="45" y="13" width="${textWidth}" height="24" rx="12" fill="url(#g${number})" opacity="0.15"/>
+        <text x="${45 + textWidth/2}" y="28" font-family="Arial" font-size="11" font-weight="bold" fill="${shadowColor}" text-anchor="middle">${displayName}</text>
     </svg>`;
     
     return new kakao.maps.MarkerImage(
         URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })),
-        new kakao.maps.Size(40, 52),
+        new kakao.maps.Size(totalWidth, 52),
         { offset: new kakao.maps.Point(20, 52) }
     );
 }
