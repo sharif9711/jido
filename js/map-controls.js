@@ -22,23 +22,59 @@ function toggleMarkerList() {
     }
 }
 
-// 마커 목록 업데이트
+// 마커 목록 업데이트 - 이름, 연락처, 주소 표시
 function updateMarkerList() {
     const content = document.getElementById('markerListContent');
-    if (!content || markerListData.length === 0) return;
-
-    content.innerHTML = markerListData.map((item, index) => `
-        <div onclick="focusOnMarker(${index})" class="p-4 border-b border-slate-100 hover:bg-blue-50 cursor-pointer transition-colors">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="font-semibold text-slate-900 mb-1">${item.순번}. ${item.이름 || '이름없음'}</div>
-                    <div class="text-sm text-slate-600 mb-1">📞 ${item.연락처 || '-'}</div>
-                    <div class="text-sm text-slate-600">📍 ${item.주소}</div>
-                </div>
-                ${item.isDuplicate ? '<span class="text-red-500 text-xs font-bold">중복</span>' : ''}
+    if (!content || markerListData.length === 0) {
+        content.innerHTML = `
+            <div class="p-8 text-center text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-3 text-slate-300">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <p class="text-sm">표시된 마커가 없습니다</p>
             </div>
-        </div>
-    `).join('');
+        `;
+        return;
+    }
+
+    content.innerHTML = markerListData.map((item, index) => {
+        // 중복 여부에 따른 스타일
+        const capsuleClass = item.isDuplicate 
+            ? 'bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md border-red-300/50' 
+            : 'bg-white/60 backdrop-blur-md border-slate-200/50';
+        
+        const textColor = item.isDuplicate ? 'text-white' : 'text-slate-800';
+        
+        return `
+            <div onclick="focusOnMarker(${index})" 
+                 class="p-4 border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 hover:scale-[1.02]">
+                <div class="flex items-start gap-3">
+                    <!-- 순번.이름 캡슐 -->
+                    <div class="${capsuleClass} ${textColor} px-4 py-2 rounded-full text-sm font-semibold border shadow-lg flex-shrink-0">
+                        ${item.순번}. ${item.이름 || '이름없음'}
+                    </div>
+                    
+                    <!-- 정보 -->
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-slate-700 mb-1 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <span class="truncate">${item.연락처 || '-'}</span>
+                        </div>
+                        <div class="text-xs text-slate-600 flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span class="break-words">${item.주소}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // 특정 마커로 포커스
