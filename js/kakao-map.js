@@ -403,13 +403,10 @@ function hideBottomInfoPanel() {
 }
 
 function openKakaoNavi(address, lat, lng) {
-    console.log('=== 카카오내비 실행 시도 ===');
-    console.log('address:', address);
-    console.log('lat:', lat, 'type:', typeof lat);
-    console.log('lng:', lng, 'type:', typeof lng);
+    console.log('카카오내비 실행:', { address, lat, lng });
     
     if (!lat || !lng || lat === 0 || lng === 0) { 
-        alert('위치 정보가 없습니다. lat=' + lat + ', lng=' + lng); 
+        alert('위치 정보가 없습니다.'); 
         return; 
     }
     
@@ -417,37 +414,58 @@ function openKakaoNavi(address, lat, lng) {
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
     
-    console.log('변환된 좌표:', { latitude, longitude });
-    
     if (isNaN(latitude) || isNaN(longitude)) {
-        alert('좌표 변환 실패: lat=' + lat + ', lng=' + lng);
+        alert('좌표 변환 실패');
         return;
     }
     
     const name = address || '목적지';
     
-    // 카카오내비 앱 실행
+    // 카카오맵 길찾기 URL (웹/앱 모두 호환)
+    const kakaoMapUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${latitude},${longitude}`;
+    
+    // 카카오내비 직접 실행 URL
     const kakaoNaviUrl = `kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${longitude}&y=${latitude}&coord_type=wgs84`;
     
-    console.log('카카오내비 URL:', kakaoNaviUrl);
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isInKakaoApp = /KAKAOTALK|KAKAOSTORY/i.test(userAgent);
+    const isInWebView = /wv|WebView|(iPhone|iPod|iPad)(?!.*Safari\/)/i.test(userAgent);
     
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('환경 감지:', { 
+        isInKakaoApp, 
+        isInWebView,
+        userAgent: userAgent.substring(0, 100)
+    });
     
-    if (isMobile) {
-        // 모바일: 카카오내비 앱 실행
-        window.location.href = kakaoNaviUrl;
-        
-        // 2초 후 앱이 설치되어 있지 않으면 웹 카카오맵으로 이동
-        setTimeout(() => {
-            if (!document.hidden) {
-                const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${latitude},${longitude}`;
-                window.location.href = webNaviUrl;
-            }
-        }, 2000);
+    if (isInKakaoApp || isInWebView) {
+        // 카카오 앱 내부 또는 일반 웹뷰 내부 - 카카오맵 URL로 연결
+        console.log('카카오맵 URL 사용:', kakaoMapUrl);
+        window.location.href = kakaoMapUrl;
     } else {
-        // PC: 웹 카카오맵 길찾기
-        const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${latitude},${longitude}`;
-        window.open(webNaviUrl, '_blank');
+        // 일반 모바일 브라우저 - 카카오내비 앱 시도
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        if (isMobile) {
+            console.log('카카오내비 앱 실행 시도');
+            
+            // iframe을 사용한 앱 실행 (더 안정적)
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = kakaoNaviUrl;
+            document.body.appendChild(iframe);
+            
+            // 1.5초 후 앱이 없으면 카카오맵으로
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                if (!document.hidden) {
+                    console.log('앱 없음 - 카카오맵으로 이동');
+                    window.location.href = kakaoMapUrl;
+                }
+            }, 1500);
+        } else {
+            // PC - 새 탭에서 카카오맵 열기
+            window.open(kakaoMapUrl, '_blank');
+        }
     }
 }
 
