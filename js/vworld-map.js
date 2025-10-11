@@ -342,90 +342,124 @@ function extractJibun(address) {
     return { 본번: '0000', 부번: '0000', isSan: false };
 }
 
-// VWorld API로 상세 주소 정보 조회 (JSONP - 우편번호 포함)
-async function getVWorldAddressDetail(lon, lat) {
+// 카카오 API로 우편번호 조회 (지번 주소 포함)
+async function getZipCodeFromKakao(address) {
+    if (typeof kakao === 'undefined' || !kakao.maps || !kakao.maps.services) {
+        return '';
+    }
+    
     try {
-        // type=parcel로 지번 주소 우선 조회
-        const url = 'https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=' + lon + ',' + lat + '&type=parcel&zipcode=true&simple=false&key=' + VWORLD_API_KEY + '&format=json&domain=';
+        const geocoder = new kakao.maps.services.Geocoder();
         
-        const data = await vworldJsonp(url);
-        
-        console.log('VWorld 주소 상세 (지번):', data);
-        
-        if (data.response && data.response.status === 'OK' && data.response.result) {
-            const result = data.response.result;
-            let zipCode = '';
-            
-            // 우편번호 찾기 - 여러 경로 시도
-            if (result.zipcode) {
-                zipCode = result.zipcode;
-            } else if (result.structure) {
-                // structure 내부 탐색
-                if (result.structure.zipcode) {
-                    zipCode = result.structure.zipcode;
-                } else if (result.structure.level4L) {
-                    zipCode = result.structure.level4L;
-                } else if (result.structure.level4LC) {
-                    zipCode = result.structure.level4LC;
+        const result = await new Promise((resolve) => {
+            geocoder.addressSearch(address, function(addressResult, status) {
+                if (status === kakao.maps.services.Status.OK && addressResult && addressResult.length > 0) {
+                    resolve(addressResult[0]);
+                } else {
+                    resolve(null);
                 }
+            });
+        });
+        
+        if (result) {
+            // 도로명 주소 우편번호
+            if (result.road_address && result.road_address.zone_no) {
+                return result.road_address.zone_no;
             }
-            
-            // 지번 주소에서 우편번호를 못 찾으면 도로명 주소로 재시도
-            if (!zipCode) {
-                const roadUrl = 'https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=' + lon + ',' + lat + '&type=road&zipcode=true&simple=false&key=' + VWORLD_API_KEY + '&format=json&domain=';
-                const roadData = await vworldJsonp(roadUrl);
-                
-                console.log('VWorld 주소 상세 (도로명):', roadData);
-                
-                if (roadData.response && roadData.response.status === 'OK' && roadData.response.result) {
-                    const roadResult = roadData.response.result;
-                    if (roadResult.zipcode) {
-                        zipCode = roadResult.zipcode;
-                    } else if (roadResult.structure && roadResult.structure.zipcode) {
-                        zipCode = roadResult.structure.zipcode;
-                    }
-                }
+            // 지번 주소 우편번호
+            if (result.address && result.address.zip_code) {
+                return result.address.zip_code;
             }
-            
-            console.log('최종 우편번호:', zipCode);
-            return { zipCode: zipCode };
         }
     } catch (error) {
-        console.warn('VWorld 주소 상세 조회 실패:', error.message);
+        console.warn('카카오 우편번호 조회 실패:', error);
     }
-    return { zipCode: '' };
+    
+    return '';
 }
 
-// VWorld로 토지 정보 조회 (지목, 면적) - 간단한 방식
-async function getVWorldLandInfo(bjdCode, bonbun, bubun, isSan) {
+// 공공데이터포털 API로 토지 정보 조회 (일반 fetch 시도)
+async function getLandInfoFromPublicAPI(pnuCode) {
+    // 여러 년도로 시도
+    const years = ['2024', '2023', '2022'];
+    
+    for (const year of years) {
+        try {
+            // 개별공시지가 조회
+            const url = 'https://api.vworld.kr/ned/data/getIndvdLandPriceAttr?key=' + VWORLD_API_KEY + '&pnu=' + pnuCode + '&stdrYear=' + year + '&format=json&domain=https://sharif9711.github.io';
+            
+            console.log('공공데이터 조회 URL:', url);
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            console.log('공공데이터 응답 (' + year + '):', data);
+            
+            if (data && data.indvdLandPriceAttrs && data.indvdLandPriceAttrs.field) {
+                const field = data.indvdLandPriceAttrs.field;
+                
+                let jimok = '';
+                let area = '';
+                
+                // 지목
+                if (field.ldCodeNm) {
+                    jimok = field.ldCodeNm;
+                } else if (field.lndcgrCodeNm) {
+                    jimok = field.lndcgrCodeNm;
+                }
+                
+                // 면적
+                if (field.lndpclAr) {
+                    const areaNum = parseFloat(field.lndpclAr);
+                    if (!isNaN(areaNum)) {
+                        area = areaNum.toFixed(2) + '㎡';
+                    }
+                }
+                
+                if (jimok || area) {
+                    console.log('토지정보 추출 성공:', { jimok: jimok, area: area });
+                    return { jimok: jimok, area: area };
+                }
+            }
+        } catch (error) {
+            console.warn('공공데이터 조회 실패 (' + year + '):', error.message);
+        }
+    }
+    
+    return { jimok: '', area: '' };
+}
+
+// 국토교통부 토지대장 정보 조회 (면적, 지목)
+async function getLandInfoFromMOLIT(pnuCode) {
     try {
-        // 법정동코드와 지번으로 조회
-        console.log('토지정보 조회:', { bjdCode: bjdCode, bonbun: bonbun, bubun: bubun, isSan: isSan });
+        // PNU에서 정보 추출
+        const sigunguCd = pnuCode.substring(0, 5);
+        const bjdongCd = pnuCode.substring(5, 10);
+        const bun = pnuCode.substring(11, 15);
+        const ji = pnuCode.substring(15, 19);
         
-        // PNU 코드 생성
-        const daejangCode = isSan ? '2' : '1'; // 산이면 2(임야), 아니면 1(토지)
-        const pnuCode = bjdCode + daejangCode + bonbun + bubun;
+        // 국토교통부 토지대장 API
+        const serviceKey = 'BE552462-0744-32DB-81E7-1B7317390D68';
+        const url = 'http://apis.data.go.kr/1611000/nsdi/LandCharacteristicsService/attr/getLandCharacteristics?ServiceKey=' + serviceKey + '&pnu=' + pnuCode + '&format=json&numOfRows=1&pageNo=1';
         
-        console.log('생성된 PNU:', pnuCode);
+        console.log('국토부 토지특성 조회:', url);
         
-        // VWorld 개별공시지가 API로 시도 (JSONP)
-        const url = 'https://api.vworld.kr/ned/data/getIndvdLandPriceAttr?key=' + VWORLD_API_KEY + '&pnu=' + pnuCode + '&stdrYear=2024&format=json&numOfRows=1&pageNo=1&domain=';
+        const response = await fetch(url);
+        const data = await response.json();
         
-        const data = await vworldJsonp(url);
+        console.log('국토부 응답:', data);
         
-        console.log('개별공시지가 API 응답:', data);
-        
-        if (data && data.indvdLandPriceAttrs && data.indvdLandPriceAttrs.field) {
-            const field = data.indvdLandPriceAttrs.field;
+        if (data && data.landCharacteristics && data.landCharacteristics.field) {
+            const field = data.landCharacteristics.field;
             
             let jimok = '';
             let area = '';
             
             // 지목
-            if (field.ldCodeNm) {
-                jimok = field.ldCodeNm;
-            } else if (field.lndcgrCodeNm) {
+            if (field.lndcgrCodeNm) {
                 jimok = field.lndcgrCodeNm;
+            } else if (field.jimokNm) {
+                jimok = field.jimokNm;
             }
             
             // 면적
@@ -441,11 +475,52 @@ async function getVWorldLandInfo(bjdCode, bonbun, bubun, isSan) {
                 }
             }
             
-            console.log('토지정보 추출:', { jimok: jimok, area: area });
+            console.log('국토부 토지정보:', { jimok: jimok, area: area });
             return { jimok: jimok, area: area };
         }
     } catch (error) {
-        console.warn('VWorld 토지정보 조회 실패:', error.message);
+        console.warn('국토부 API 조회 실패:', error.message);
+    }
+    
+    return { jimok: '', area: '' };
+}
+
+// LX 한국국토정보공사 부동산정보 조회 (대체)
+async function getLandInfoFromLX(bjdCode, bonbun, bubun) {
+    try {
+        // 법정동코드 분해
+        const sigunguCd = bjdCode.substring(0, 5);
+        const bjdongCd = bjdCode.substring(5, 10);
+        
+        const bun = parseInt(bonbun);
+        const ji = parseInt(bubun);
+        
+        // 공공데이터포털 - 토지특성정보서비스
+        const serviceKey = 'BE552462-0744-32DB-81E7-1B7317390D68';
+        const url = 'http://openapi.nsdi.go.kr/nsdi/LandCharacteristicsService/attr/getLandCharacteristics?authkey=' + serviceKey + '&pnu=' + bjdCode + '1' + bonbun + bubun + '&format=json';
+        
+        console.log('LX 토지정보 조회:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log('LX 응답:', data);
+        
+        if (data && data.field) {
+            let jimok = data.field.lndcgrCodeNm || data.field.jimok || '';
+            let area = '';
+            
+            if (data.field.lndpclAr) {
+                const areaNum = parseFloat(data.field.lndpclAr);
+                if (!isNaN(areaNum)) {
+                    area = areaNum.toFixed(2) + '㎡';
+                }
+            }
+            
+            return { jimok: jimok, area: area };
+        }
+    } catch (error) {
+        console.warn('LX API 조회 실패:', error.message);
     }
     
     return { jimok: '', area: '' };
@@ -529,16 +604,10 @@ async function getAddressDetailInfo(address) {
             }
         }
         
-        // 2단계: VWorld로 우편번호 보완
-        if (result.lon && result.lat) {
-            if (!result.zipCode) {
-                const vworldAddr = await getVWorldAddressDetail(result.lon, result.lat);
-                
-                if (vworldAddr.zipCode) {
-                    result.zipCode = vworldAddr.zipCode;
-                    console.log('VWorld 우편번호:', result.zipCode);
-                }
-            }
+        // 2단계: 우편번호 보완 (카카오에서 못 찾은 경우)
+        if (!result.zipCode && address) {
+            result.zipCode = await getZipCodeFromKakao(address);
+            console.log('카카오 재조회 우편번호:', result.zipCode);
         }
         
         // PNU 코드 생성
@@ -548,10 +617,20 @@ async function getAddressDetailInfo(address) {
             console.log('생성된 PNU:', result.pnuCode);
         }
         
-        // 3단계: VWorld로 지목, 면적 조회
-        if (result.bjdCode && result.본번 !== '0000') {
-            const jibunInfo = extractJibun(address);
-            const landInfo = await getVWorldLandInfo(result.bjdCode, result.본번, result.부번, jibunInfo.isSan);
+        // 3단계: 다중 API로 지목, 면적 조회
+        if (result.pnuCode && result.pnuCode.length === 19) {
+            // 1차 시도: VWorld 공공데이터
+            let landInfo = await getLandInfoFromPublicAPI(result.pnuCode);
+            
+            // 2차 시도: 국토교통부 토지대장
+            if (!landInfo.jimok && !landInfo.area) {
+                landInfo = await getLandInfoFromMOLIT(result.pnuCode);
+            }
+            
+            // 3차 시도: LX 한국국토정보공사
+            if (!landInfo.jimok && !landInfo.area && result.bjdCode) {
+                landInfo = await getLandInfoFromLX(result.bjdCode, result.본번, result.부번);
+            }
             
             if (landInfo.jimok) {
                 result.jimok = landInfo.jimok;
@@ -561,7 +640,7 @@ async function getAddressDetailInfo(address) {
                 result.area = landInfo.area;
             }
             
-            console.log('VWorld 토지정보:', {
+            console.log('최종 토지정보:', {
                 지목: result.jimok,
                 면적: result.area
             });
