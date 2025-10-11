@@ -176,31 +176,57 @@ async function displayProjectOnKakaoMap(projectData) {
 
     for (let i = 0; i < addressesWithData.length; i++) {
         const row = addressesWithData[i];
-        const coord = await geocodeAddressKakao(row.주소);
+        
+        // 이미 좌표가 있으면 재사용, 없으면 새로 검색
+        let coord = null;
+        if (row.lat && row.lng) {
+            coord = {
+                lat: row.lat,
+                lng: row.lng,
+                address: row.주소,
+                zipCode: row.우편번호 || ''
+            };
+        } else {
+            coord = await geocodeAddressKakao(row.주소);
+        }
         
         if (coord) {
             // 원본 데이터에 좌표 저장 (중요!)
             const originalRow = currentProject.data.find(r => r.id === row.id);
             if (originalRow) {
-                originalRow.lat = coord.lat;
-                originalRow.lng = coord.lng;
+                originalRow.lat = parseFloat(coord.lat);
+                originalRow.lng = parseFloat(coord.lng);
                 if (coord.zipCode && coord.zipCode !== '') {
                     originalRow.우편번호 = coord.zipCode;
                 }
             }
             
             // row 객체에도 좌표 저장
-            row.lat = coord.lat;
-            row.lng = coord.lng;
+            row.lat = parseFloat(coord.lat);
+            row.lng = parseFloat(coord.lng);
             
             const isDuplicate = duplicateCheck[row.주소] > 1;
-            const marker = addKakaoMarker(coord, row.이름 || `#${row.순번}`, row.상태, row, isDuplicate, kakaoMarkers.length);
+            
+            // rowData에 좌표를 명시적으로 포함
+            const rowDataWithCoords = {
+                ...row,
+                lat: parseFloat(coord.lat),
+                lng: parseFloat(coord.lng)
+            };
+            
+            const marker = addKakaoMarker(coord, row.이름 || `#${row.순번}`, row.상태, rowDataWithCoords, isDuplicate, kakaoMarkers.length);
             
             if (marker) {
                 coordinates.push(new kakao.maps.LatLng(coord.lat, coord.lng));
                 markerListData.push({
-                    순번: row.순번, 이름: row.이름, 연락처: row.연락처, 주소: row.주소,
-                    상태: row.상태, lat: coord.lat, lng: coord.lng, isDuplicate
+                    순번: row.순번, 
+                    이름: row.이름, 
+                    연락처: row.연락처, 
+                    주소: row.주소,
+                    상태: row.상태, 
+                    lat: parseFloat(coord.lat), 
+                    lng: parseFloat(coord.lng), 
+                    isDuplicate
                 });
                 
                 successCount++;
@@ -210,7 +236,11 @@ async function displayProjectOnKakaoMap(projectData) {
         if (loadingStatus) {
             loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
         }
-        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // 이미 좌표가 있으면 딜레이 없음, 새로 검색한 경우만 딜레이
+        if (!row.lat || !row.lng) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
     }
     
     // 우편번호와 좌표가 업데이트되었으므로 프로젝트 저장
