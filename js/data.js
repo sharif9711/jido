@@ -14,6 +14,8 @@ function createInitialData() {
             연락처: '',
             주소: '',
             우편번호: '',
+            lat: null,
+            lng: null,
             상태: '예정',
             법정동코드: '',
             pnu코드: '',

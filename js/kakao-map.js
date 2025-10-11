@@ -1,495 +1,425 @@
-// 지도 컨트롤 기능
+// 카카오맵 관련 함수
+var kakaoMap = null;
+var kakaoMarkers = [];
+var geocoder = null;
+const KAKAO_REST_KEY = 'dc5ce78383da06e2004e87949b9e8d5d';
 
-var showLabels = true;
-var myLocationMarker = null;
-var isGpsActive = false;
-var markerListData = [];
-var myCurrentLocation = null;
-var routePolyline = null;
-var routeMarkers = []; // 경로 순번 마커들
+// 카카오맵 초기화
+function initKakaoMap() {
+    const mapContainer = document.getElementById('kakaoMap');
+    if (!mapContainer) return;
 
-// 마커 목록 토글
-function toggleMarkerList() {
-    const panel = document.getElementById('markerListPanel');
-    const btn = document.getElementById('toggleListBtn');
-    
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        btn.classList.add('bg-blue-600', 'text-white');
-        btn.classList.remove('bg-white', 'text-slate-700');
-        updateMarkerList();
-    } else {
-        panel.style.display = 'none';
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-700');
+    if (kakaoMap) {
+        mapContainer.innerHTML = '';
+        kakaoMap = null;
+    }
+
+    try {
+        kakaoMap = new kakao.maps.Map(mapContainer, {
+            center: new kakao.maps.LatLng(37.5665, 126.978),
+            level: 8
+        });
+        
+        kakaoMap.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
+        kakaoMap.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+        geocoder = new kakao.maps.services.Geocoder();
+        
+        setTimeout(() => {
+            if (kakaoMap && kakaoMap.relayout) kakaoMap.relayout();
+        }, 100);
+    } catch (error) {
+        console.error('Error initializing map:', error);
     }
 }
 
-// 마커 목록 업데이트
-function updateMarkerList() {
-    const content = document.getElementById('markerListContent');
-    if (!content || markerListData.length === 0) {
-        content.innerHTML = `
-            <div class="p-8 text-center text-slate-500">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-3 text-slate-300">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <p class="text-sm">표시된 마커가 없습니다</p>
-            </div>
-        `;
+// 주소를 좌표로 변환 (우편번호 정보도 함께 가져오기)
+function geocodeAddressKakao(address) {
+    return new Promise((resolve) => {
+        if (!address || !geocoder) {
+            resolve(null);
+            return;
+        }
+        geocoder.addressSearch(address, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+                // 우편번호 추출 (도로명 주소 우선, 없으면 지번 주소)
+                let zipCode = '';
+                if (result[0].road_address && result[0].road_address.zone_no) {
+                    zipCode = result[0].road_address.zone_no;
+                } else if (result[0].address && result[0].address.zip_code) {
+                    zipCode = result[0].address.zip_code;
+                }
+                
+                resolve({
+                    lat: parseFloat(result[0].y),
+                    lng: parseFloat(result[0].x),
+                    address: address,
+                    zipCode: zipCode
+                });
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
+// 마커 이미지 생성
+function createNumberedMarkerImage(number, status) {
+    let baseColor = '#3b82f6', shadowColor = '#1e40af';
+    if (status === '완료') { baseColor = '#10b981'; shadowColor = '#047857'; }
+    if (status === '보류') { baseColor = '#f59e0b'; shadowColor = '#d97706'; }
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
+        <defs>
+            <linearGradient id="g${number}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:${baseColor}"/>
+                <stop offset="100%" style="stop-color:${shadowColor}"/>
+            </linearGradient>
+        </defs>
+        <ellipse cx="20" cy="48" rx="12" ry="3" fill="rgba(0,0,0,0.2)"/>
+        <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="url(#g${number})" stroke="${shadowColor}" stroke-width="1.5"/>
+        <circle cx="20" cy="18" r="12" fill="white" opacity="0.95"/>
+        <text x="20" y="23" font-family="Arial" font-size="12" font-weight="bold" fill="${shadowColor}" text-anchor="middle">${number}</text>
+    </svg>`;
+    
+    return new kakao.maps.MarkerImage(
+        URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })),
+        new kakao.maps.Size(40, 52),
+        { offset: new kakao.maps.Point(20, 52) }
+    );
+}
+
+// 마커 추가
+function addKakaoMarker(coordinate, label, status, rowData, isDuplicate, markerIndex) {
+    if (!kakaoMap) return null;
+
+    const markerPosition = new kakao.maps.LatLng(coordinate.lat, coordinate.lng);
+    const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        map: kakaoMap,
+        image: createNumberedMarkerImage(rowData.순번, status),
+        clickable: true
+    });
+
+    kakao.maps.event.addListener(marker, 'click', () => showBottomInfoPanel(rowData, markerIndex));
+
+    // 이름을 마커 위쪽에 표시 - 중복 주소면 빨간색
+    const labelBg = isDuplicate 
+        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.8))' 
+        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))';
+    const labelColor = isDuplicate ? '#ffffff' : '#1e293b';
+    const labelBorder = isDuplicate ? 'rgba(255, 100, 100, 0.8)' : 'rgba(255, 255, 255, 0.9)';
+    
+    const customOverlay = new kakao.maps.CustomOverlay({
+        position: markerPosition,
+        content: `<div style="background:${labelBg};backdrop-filter:blur(16px);color:${labelColor};padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid ${labelBorder};pointer-events:none">${rowData.이름 || '이름없음'}</div>`,
+        xAnchor: 0.5,
+        yAnchor: 2.6,
+        map: showLabels ? kakaoMap : null,
+        zIndex: 1
+    });
+
+    kakaoMarkers.push({ marker, customOverlay, rowData });
+    return marker;
+}
+
+// 모든 마커 제거
+function clearKakaoMarkers() {
+    kakaoMarkers.forEach(item => {
+        item.marker.setMap(null);
+        if (item.customOverlay) item.customOverlay.setMap(null);
+    });
+    kakaoMarkers = [];
+}
+
+// 프로젝트 데이터로 지도에 마커 표시
+async function displayProjectOnKakaoMap(projectData) {
+    if (!kakaoMap) {
+        initKakaoMap();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    const loadingStatus = document.getElementById('mapLoadingStatus');
+    if (!kakaoMap) {
+        if (loadingStatus) {
+            loadingStatus.style.display = 'block';
+            loadingStatus.style.backgroundColor = '#ef4444';
+            loadingStatus.textContent = '✗ 지도를 초기화할 수 없습니다.';
+        }
         return;
     }
 
-    content.innerHTML = markerListData.map((item, index) => {
-        // 상태별 색상
-        let statusColor = 'bg-blue-100 text-blue-700'; // 예정
-        if (item.상태 === '완료') statusColor = 'bg-green-100 text-green-700';
-        if (item.상태 === '보류') statusColor = 'bg-amber-100 text-amber-700';
-        
-        return `
-            <div onclick="focusOnMarker(${index})" 
-                 class="p-4 border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 hover:scale-[1.02]">
-                <div class="flex items-start gap-3">
-                    <div class="bg-white/60 backdrop-blur-md border-slate-200/50 text-slate-800 px-4 py-2 rounded-full text-xs font-semibold border shadow-lg flex-shrink-0">
-                        ${item.순번}. ${item.이름 || '이름없음'}
-                    </div>
-                    
-                    <div class="flex-1 min-w-0">
-                        <div class="mb-1">
-                            <span class="inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColor}">
-                                ${item.상태}
-                            </span>
-                        </div>
-                        <div class="text-sm text-slate-700 mb-1 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
-                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                            </svg>
-                            <span class="truncate">${item.연락처 || '-'}</span>
-                        </div>
-                        <div class="text-xs text-slate-600 flex items-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            <span class="break-words">${item.주소}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
+    clearKakaoMarkers();
 
-// 특정 마커로 포커스
-function focusOnMarker(index) {
-    if (index < 0 || index >= markerListData.length) return;
-    
-    const item = markerListData[index];
-    if (item.lat && item.lng && kakaoMap) {
-        const position = new kakao.maps.LatLng(item.lat, item.lng);
-        kakaoMap.setCenter(position);
-        kakaoMap.setLevel(3);
-    }
-}
-
-// 내 위치 표시 토글
-var gpsWatchId = null; // 위치 추적 ID
-
-function toggleMyLocation() {
-    const btn = document.getElementById('toggleGpsBtn');
-    
-    // 상태 0: OFF → 상태 1: 내 위치 표시
-    if (!isGpsActive && !gpsWatchId) {
-        if (navigator.geolocation) {
-            btn.classList.add('bg-yellow-500', 'text-white');
-            btn.classList.remove('bg-white', 'text-slate-700', 'bg-green-600');
-            btn.textContent = '🔡 검색중...';
-            showMapMessage('현재 위치를 검색하고 있습니다...', 'info');
-            
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    
-                    const myPosition = new kakao.maps.LatLng(lat, lng);
-                    
-                    if (myLocationMarker) {
-                        myLocationMarker.setMap(null);
-                    }
-                    
-                    // 더 시인성 좋은 내 위치 마커 생성
-                    myLocationMarker = new kakao.maps.CustomOverlay({
-                        position: myPosition,
-                        content: `
-                            <div style="position: relative; width: 40px; height: 40px;">
-                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
-                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
-                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
-                            </div>
-                            <style>
-                                @keyframes pulse {
-                                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                                    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-                                }
-                            </style>
-                        `,
-                        map: kakaoMap,
-                        zIndex: 10
-                    });
-                    
-                    kakaoMap.setCenter(myPosition);
-                    kakaoMap.setLevel(4);
-                    
-                    myCurrentLocation = { lat: lat, lng: lng };
-                    
-                    isGpsActive = true;
-                    btn.classList.remove('bg-yellow-500');
-                    btn.classList.add('bg-green-600', 'text-white');
-                    btn.textContent = '📍 GPS';
-                    showMapMessage('내 위치가 표시되었습니다', 'success');
-                },
-                function(error) {
-                    alert('위치 정보를 가져올 수 없습니다: ' + error.message);
-                    btn.classList.remove('bg-yellow-500', 'text-white');
-                    btn.classList.add('bg-white', 'text-slate-700');
-                    btn.textContent = '📍 GPS';
-                }
-            );
-        } else {
-            alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+    const addressesWithData = projectData.filter(row => row.주소 && row.주소.trim());
+    if (addressesWithData.length === 0) {
+        if (loadingStatus) {
+            loadingStatus.style.display = 'block';
+            loadingStatus.style.backgroundColor = '#f59e0b';
+            loadingStatus.textContent = '⚠ 표시할 주소가 없습니다.';
         }
+        return;
     }
-    // 상태 1: 내 위치 표시 → 상태 2: 실시간 추적
-    else if (isGpsActive && !gpsWatchId) {
-        btn.classList.add('bg-blue-600', 'text-white');
-        btn.classList.remove('bg-green-600');
-        btn.textContent = '🎯 추적중';
-        showMapMessage('실시간 위치 추적을 시작합니다', 'info');
+
+    const duplicateCheck = checkDuplicateAddresses(addressesWithData.map(r => r.주소));
+    if (loadingStatus) {
+        loadingStatus.style.display = 'block';
+        loadingStatus.style.backgroundColor = '#3b82f6';
+        loadingStatus.textContent = `주소 검색 중... (0/${addressesWithData.length})`;
+    }
+
+    const coordinates = [];
+    let successCount = 0;
+    markerListData = [];
+
+    for (let i = 0; i < addressesWithData.length; i++) {
+        const row = addressesWithData[i];
+        const coord = await geocodeAddressKakao(row.주소);
         
-        gpsWatchId = navigator.geolocation.watchPosition(
-            function(position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const myPosition = new kakao.maps.LatLng(lat, lng);
-                
-                if (myLocationMarker) {
-                    myLocationMarker.setMap(null);
-                }
-                
-                myLocationMarker = new kakao.maps.CustomOverlay({
-                    position: myPosition,
-                    content: `
-                        <div style="position: relative; width: 40px; height: 40px;">
-                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
-                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
-                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
-                        </div>
-                        <style>
-                            @keyframes pulse {
-                                0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                                100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-                            }
-                        </style>
-                    `,
-                    map: kakaoMap,
-                    zIndex: 10
+        if (coord) {
+            const isDuplicate = duplicateCheck[row.주소] > 1;
+            const marker = addKakaoMarker(coord, row.이름 || `#${row.순번}`, row.상태, row, isDuplicate, kakaoMarkers.length);
+            
+            if (marker) {
+                coordinates.push(new kakao.maps.LatLng(coord.lat, coord.lng));
+                markerListData.push({
+                    순번: row.순번, 이름: row.이름, 연락처: row.연락처, 주소: row.주소,
+                    상태: row.상태, lat: coord.lat, lng: coord.lng, isDuplicate
                 });
                 
-                kakaoMap.setCenter(myPosition);
-                myCurrentLocation = { lat: lat, lng: lng };
-            },
-            function(error) {
-                console.error('위치 추적 오류:', error);
-            },
-            {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            }
-        );
-    }
-    // 상태 2: 실시간 추적 → 상태 0: OFF
-    else {
-        if (gpsWatchId) {
-            navigator.geolocation.clearWatch(gpsWatchId);
-            gpsWatchId = null;
-        }
-        if (myLocationMarker) {
-            myLocationMarker.setMap(null);
-            myLocationMarker = null;
-        }
-        isGpsActive = false;
-        myCurrentLocation = null;
-        btn.classList.remove('bg-green-600', 'bg-blue-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-700');
-        btn.textContent = '📍 GPS';
-        showMapMessage('GPS가 꺼졌습니다', 'info');
-    }
-}
-
-// 마커 이름 라벨 토글
-function toggleMarkerLabels() {
-    showLabels = !showLabels;
-    const btn = document.getElementById('toggleLabelsBtn');
-    
-    if (showLabels) {
-        btn.classList.add('bg-blue-600', 'text-white');
-        btn.classList.remove('bg-white', 'text-slate-700');
-    } else {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-700');
-    }
-    
-    kakaoMarkers.forEach(item => {
-        if (item.customOverlay) {
-            if (showLabels) {
-                item.customOverlay.setMap(kakaoMap);
-            } else {
-                item.customOverlay.setMap(null);
-            }
-        }
-    });
-}
-
-// 중복 주소 체크
-function checkDuplicateAddresses(addresses) {
-    const addressCount = {};
-    addresses.forEach(addr => {
-        addressCount[addr] = (addressCount[addr] || 0) + 1;
-    });
-    return addressCount;
-}
-
-// 최적 경로 계산 (ON/OFF 토글)
-var isRouteActive = false;
-
-async function calculateOptimalRoute() {
-    const btn = document.getElementById('optimalRouteBtn');
-    
-    // 이미 경로가 표시되어 있으면 제거 (OFF)
-    if (isRouteActive) {
-        // 경로 제거
-        if (routePolyline) {
-            routePolyline.setMap(null);
-            routePolyline = null;
-        }
-        
-        // 순번 마커 제거
-        routeMarkers.forEach(marker => marker.setMap(null));
-        routeMarkers = [];
-        
-        isRouteActive = false;
-        
-        btn.classList.remove('bg-purple-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-700');
-        btn.textContent = '🗺️ 최적경로';
-        
-        showMapMessage('경로가 제거되었습니다.', 'info');
-        return;
-    }
-    
-    // 경로 계산 시작 (ON)
-    if (!myCurrentLocation) {
-        showMapMessage('먼저 GPS 버튼을 눌러 현재 위치를 설정해주세요.', 'warning');
-        return;
-    }
-    
-    if (markerListData.length === 0) {
-        showMapMessage('표시할 마커가 없습니다.', 'warning');
-        return;
-    }
-    
-    // 예정 상태인 마커만 필터링
-    const pendingMarkers = markerListData.filter(marker => marker.상태 === '예정');
-    
-    if (pendingMarkers.length === 0) {
-        showMapMessage('예정 상태인 마커가 없습니다. (완료/보류 제외)', 'warning');
-        return;
-    }
-    
-    btn.classList.remove('bg-white', 'text-slate-700');
-    btn.classList.add('bg-yellow-500', 'text-white');
-    btn.textContent = '🔄 계산중...';
-    
-    // 최적 경로 계산
-    const visited = new Array(pendingMarkers.length).fill(false);
-    const routeOrder = [];
-    let currentPos = myCurrentLocation;
-    
-    for (let i = 0; i < pendingMarkers.length; i++) {
-        let nearestIndex = -1;
-        let minDistance = Infinity;
-        
-        for (let j = 0; j < pendingMarkers.length; j++) {
-            if (!visited[j]) {
-                const distance = getDistance(
-                    currentPos.lat, currentPos.lng,
-                    pendingMarkers[j].lat, pendingMarkers[j].lng
-                );
-                
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    nearestIndex = j;
-                }
-            }
-        }
-        
-        if (nearestIndex !== -1) {
-            visited[nearestIndex] = true;
-            routeOrder.push({
-                lat: pendingMarkers[nearestIndex].lat,
-                lng: pendingMarkers[nearestIndex].lng,
-                순번: i + 1,
-                이름: pendingMarkers[nearestIndex].이름
-            });
-            currentPos = { 
-                lat: pendingMarkers[nearestIndex].lat, 
-                lng: pendingMarkers[nearestIndex].lng 
-            };
-        }
-    }
-    
-    // 경로 그리기
-    await drawRoadRoute(myCurrentLocation, routeOrder);
-    
-    isRouteActive = true;
-    btn.classList.remove('bg-yellow-500');
-    btn.classList.add('bg-purple-600', 'text-white');
-    btn.textContent = '✓ 경로표시중';
-    
-    showMapMessage(`최적 경로 완성! 총 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
-}
-
-// 실제 도로를 따라 경로 그리기
-async function drawRoadRoute(start, waypoints) {
-    const allPoints = [start, ...waypoints];
-    const pathCoords = [];
-    
-    pathCoords.push(new kakao.maps.LatLng(start.lat, start.lng));
-    
-    for (let i = 0; i < allPoints.length - 1; i++) {
-        const origin = allPoints[i];
-        const destination = allPoints[i + 1];
-        
-        try {
-            const response = await fetch(
-                `https://apis-navi.kakaomobility.com/v1/directions?` +
-                `origin=${origin.lng},${origin.lat}&` +
-                `destination=${destination.lng},${destination.lat}&` +
-                `priority=RECOMMEND`,
-                {
-                    headers: {
-                        'Authorization': `KakaoAK ${KAKAO_REST_KEY}`,
-                        'Content-Type': 'application/json'
+                // 우편번호 정보를 원본 데이터에 저장
+                const originalRow = currentProject.data.find(r => r.id === row.id);
+                if (originalRow) {
+                    if (coord.zipCode && coord.zipCode !== '') {
+                        originalRow.우편번호 = coord.zipCode;
                     }
                 }
-            );
-            
-            if (response.ok) {
-                const data = await response.json();
                 
-                if (data.routes && data.routes[0] && data.routes[0].sections) {
-                    data.routes[0].sections.forEach(section => {
-                        if (section.roads) {
-                            section.roads.forEach(road => {
-                                road.vertexes.forEach((coord, idx) => {
-                                    if (idx % 2 === 0) {
-                                        const lng = coord;
-                                        const lat = road.vertexes[idx + 1];
-                                        pathCoords.push(new kakao.maps.LatLng(lat, lng));
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }
-            } else {
-                pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
+                successCount++;
             }
-        } catch (error) {
-            console.error('경로 탐색 오류:', error);
-            pathCoords.push(new kakao.maps.LatLng(destination.lat, destination.lng));
         }
-        
+
+        if (loadingStatus) {
+            loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+        }
         await new Promise(resolve => setTimeout(resolve, 300));
     }
     
-    // 경로 선 그리기
-    routePolyline = new kakao.maps.Polyline({
-        map: kakaoMap,
-        path: pathCoords,
-        strokeWeight: 6,
-        strokeColor: '#4A90E2',
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid',
-        endArrow: true,
-        zIndex: 2
-    });
+    // 우편번호가 업데이트되었으므로 프로젝트 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
     
-    // 순번 마커 추가
-    waypoints.forEach((point, index) => {
-        const markerContent = `
-            <div style="
-                width: 32px;
-                height: 32px;
-                background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
-                border: 3px solid white;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-            ">
-                ${point.순번}
-            </div>
-        `;
-        
-        const customOverlay = new kakao.maps.CustomOverlay({
-            map: kakaoMap,
-            position: new kakao.maps.LatLng(point.lat, point.lng),
-            content: markerContent,
-            zIndex: 100
-        });
-        
-        routeMarkers.push(customOverlay);
-    });
+    // 보고서 테이블도 업데이트
+    if (typeof renderReportTable === 'function') {
+        renderReportTable();
+    }
+
+    if (!window.mapClickListenerRegistered) {
+        kakao.maps.event.addListener(kakaoMap, 'click', hideBottomInfoPanel);
+        window.mapClickListenerRegistered = true;
+    }
+
+    if (coordinates.length > 0) {
+        const bounds = new kakao.maps.LatLngBounds();
+        coordinates.forEach(coord => bounds.extend(coord));
+        kakaoMap.setBounds(bounds);
+        setTimeout(() => { if (kakaoMap && kakaoMap.relayout) kakaoMap.relayout(); }, 100);
+    }
+
+    if (loadingStatus) {
+        loadingStatus.style.display = 'block';
+        loadingStatus.style.backgroundColor = successCount > 0 ? '#10b981' : '#ef4444';
+        loadingStatus.textContent = `✓ 총 ${addressesWithData.length}개 주소 중 ${successCount}개를 지도에 표시했습니다.`;
+        setTimeout(() => { if (loadingStatus) loadingStatus.style.display = 'none'; }, 3000);
+    }
+
+    const panel = document.getElementById('markerListPanel');
+    if (panel && panel.style.display !== 'none') updateMarkerList();
 }
 
-// 거리 계산
-function getDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+// 지도 탭 활성화
+function onMapTabActivated() {
+    if (!kakaoMap && currentProject) initKakaoMap();
 }
 
-// 지도 메시지 표시
-function showMapMessage(message, type = 'info') {
-    const loadingStatus = document.getElementById('mapLoadingStatus');
-    if (!loadingStatus) return;
-    
-    const colors = {
-        success: '#10b981',
-        error: '#ef4444',
-        info: '#3b82f6',
-        warning: '#f59e0b'
-    };
-    
-    loadingStatus.style.display = 'block';
-    loadingStatus.style.backgroundColor = colors[type] || colors.info;
-    loadingStatus.textContent = message;
-    
-    setTimeout(() => {
-        if (loadingStatus) {
-            loadingStatus.style.display = 'none';
+// 하단 정보창
+var currentMarkerIndex = null;
+var currentDisplayedMarkers = [];
+
+function showBottomInfoPanel(rowData, markerIndex) {
+    currentMarkerIndex = markerIndex;
+    const sameAddressMarkers = [];
+    kakaoMarkers.forEach((item, index) => {
+        if (item.rowData.주소 === rowData.주소) {
+            sameAddressMarkers.push({ index, data: item.rowData });
         }
-    }, 3000);
+    });
+    currentDisplayedMarkers = sameAddressMarkers;
+    
+    const panel = document.getElementById('bottomInfoPanel');
+    if (!panel) return;
+    
+    const markersHtml = sameAddressMarkers.map((markerInfo, idx) => {
+        const data = markerInfo.data;
+        const mIdx = markerInfo.index;
+        const memos = data.메모 || [];
+        const memosHtml = memos.length > 0 
+            ? memos.map((memo, i) => `<div class="text-xs text-slate-600 mb-1"><span class="font-semibold">${i + 1}.</span> ${memo.내용} <span class="text-slate-400">(${memo.시간})</span></div>`).join('')
+            : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+        
+        return `<div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
+            <div class="mb-4 pr-8">
+                <h3 class="text-xl font-bold text-slate-900 mb-2">${data.순번}. ${data.이름 || '이름없음'}</h3>
+                <div class="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
+                    <a href="tel:${data.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 ${!data.연락처 ? 'pointer-events-none opacity-50' : ''}">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <span class="underline">${data.연락처 || '-'}</span>
+                    </a>
+                    <div class="flex items-center gap-2">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span class="text-xs">${data.주소}</span>
+                        <button onclick="openKakaoNavi('${data.주소.replace(/'/g, "\\'")}', ${data.lat || 0}, ${data.lng || 0})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors" title="카카오내비로 안내">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
+                <div class="flex gap-2">
+                    <button onclick="changeMarkerStatus(${mIdx}, '예정')" class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '예정' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">예정</button>
+                    <button onclick="changeMarkerStatus(${mIdx}, '완료')" class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '완료' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">완료</button>
+                    <button onclick="changeMarkerStatus(${mIdx}, '보류')" class="px-4 py-2 rounded-lg font-medium transition-all ${data.상태 === '보류' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">보류</button>
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-slate-700">메모</label>
+                    <button onclick="openMemoModal(${mIdx})" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">+ 메모 추가</button>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-4 max-h-32 overflow-y-auto">${memosHtml}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    panel.innerHTML = `<div class="bg-white rounded-t-2xl shadow-2xl max-w-4xl mx-auto relative">
+        <button onclick="hideBottomInfoPanel()" class="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg z-10">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        ${sameAddressMarkers.length > 1 ? `<div class="bg-blue-50 px-6 py-3 border-b border-blue-100"><p class="text-sm text-blue-700 font-medium">ℹ️ 같은 주소에 ${sameAddressMarkers.length}개의 항목이 있습니다</p></div>` : ''}
+        <div class="max-h-[70vh] overflow-y-auto">${markersHtml}</div>
+    </div>`;
+    
+    panel.style.display = 'block';
+    panel.style.animation = 'slideUp 0.3s ease-out';
+}
+
+function hideBottomInfoPanel() {
+    const panel = document.getElementById('bottomInfoPanel');
+    if (panel) {
+        panel.style.animation = 'slideDown 0.3s ease-out';
+        setTimeout(() => panel.style.display = 'none', 300);
+    }
+    currentMarkerIndex = null;
+    currentDisplayedMarkers = [];
+}
+
+function openKakaoNavi(address, lat, lng) {
+    if (!lat || !lng) { alert('위치 정보가 없습니다.'); return; }
+    
+    // 주소를 목적지 이름으로 사용
+    const destination = address || '목적지';
+    const naviUrl = `kakaonavi://route?ep=${lng},${lat}&by=ROADMAP&name=${encodeURIComponent(destination)}`;
+    const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(destination)},${lat},${lng}`;
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        window.location.href = naviUrl;
+        setTimeout(() => window.open(webNaviUrl, '_blank'), 1000);
+    } else {
+        window.open(webNaviUrl, '_blank');
+    }
+}
+
+function changeMarkerStatus(markerIndex, newStatus) {
+    if (!currentProject || !kakaoMarkers[markerIndex]) return;
+    const markerData = kakaoMarkers[markerIndex].rowData;
+    markerData.상태 = newStatus;
+    
+    const row = currentProject.data.find(r => r.id === markerData.id);
+    if (row) {
+        row.상태 = newStatus;
+        if (typeof renderReportTable === 'function') renderReportTable();
+    }
+    
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) projects[projectIndex] = currentProject;
+    
+    const oldMarker = kakaoMarkers[markerIndex];
+    oldMarker.marker.setMap(null);
+    if (oldMarker.customOverlay) oldMarker.customOverlay.setMap(null);
+    
+    oldMarker.marker.setImage(createNumberedMarkerImage(markerData.순번, newStatus));
+    oldMarker.marker.setMap(kakaoMap);
+    if (oldMarker.customOverlay && showLabels) oldMarker.customOverlay.setMap(kakaoMap);
+    
+    currentDisplayedMarkers.forEach(item => {
+        if (item.index === markerIndex) item.data.상태 = newStatus;
+    });
+    
+    showBottomInfoPanel(markerData, markerIndex);
+}
+
+function openMemoModal(markerIndex) {
+    const modal = document.getElementById('memoModal');
+    if (!modal) return;
+    modal.dataset.markerIndex = markerIndex;
+    document.getElementById('memoInput').value = '';
+    modal.style.display = 'flex';
+}
+
+function closeMemoModal() {
+    const modal = document.getElementById('memoModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function saveMemo() {
+    const modal = document.getElementById('memoModal');
+    const markerIndex = parseInt(modal.dataset.markerIndex);
+    const memoText = document.getElementById('memoInput').value.trim();
+    
+    if (!memoText || !kakaoMarkers[markerIndex]) {
+        alert('메모 내용을 입력해주세요.');
+        return;
+    }
+    
+    const markerData = kakaoMarkers[markerIndex].rowData;
+    if (!markerData.메모) markerData.메모 = [];
+    
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    markerData.메모.push({ 내용: memoText, 시간: timeStr });
+    
+    const row = currentProject.data.find(r => r.id === markerData.id);
+    if (row) {
+        row.메모 = markerData.메모;
+        const memoEntry = `${markerData.메모.length}. ${memoText} (${timeStr})`;
+        
+        // 줄바꿈을 두 번 추가 (\n\n)
+        row.기록사항 = (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') 
+            ? memoEntry 
+            : row.기록사항 + '\n\n' + memoEntry;
+        
+        if (typeof renderReportTable === 'function') renderReportTable();
+    }
+    
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) projects[projectIndex] = currentProject;
+    
+    closeMemoModal();
+    showBottomInfoPanel(markerData, markerIndex);
 }

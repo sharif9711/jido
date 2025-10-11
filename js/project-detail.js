@@ -46,7 +46,7 @@ function switchTab(tabName) {
     });
 }
 
-// 보고서용 우편번호 자동 수집
+// 보고서용 우편번호 및 좌표 자동 수집
 async function fetchPostalCodesForReport() {
     if (!currentProject) return;
     
@@ -66,30 +66,39 @@ async function fetchPostalCodesForReport() {
     }
     
     const rowsWithAddress = currentProject.data.filter(row => 
-        row.주소 && row.주소.trim() !== '' && !row.우편번호
+        row.주소 && row.주소.trim() !== ''
     );
     
     if (rowsWithAddress.length === 0) return;
     
-    // 백그라운드에서 우편번호 수집
+    // 백그라운드에서 우편번호 및 좌표 수집
     for (let i = 0; i < Math.min(rowsWithAddress.length, 10); i++) {
         const row = rowsWithAddress[i];
         
         try {
             geocoder.addressSearch(row.주소, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
-                    let zipCode = '';
-                    if (result[0].road_address && result[0].road_address.zone_no) {
-                        zipCode = result[0].road_address.zone_no;
-                    } else if (result[0].address && result[0].address.zip_code) {
-                        zipCode = result[0].address.zip_code;
+                    // 우편번호 수집
+                    if (!row.우편번호) {
+                        let zipCode = '';
+                        if (result[0].road_address && result[0].road_address.zone_no) {
+                            zipCode = result[0].road_address.zone_no;
+                        } else if (result[0].address && result[0].address.zip_code) {
+                            zipCode = result[0].address.zip_code;
+                        }
+                        if (zipCode) {
+                            row.우편번호 = zipCode;
+                        }
                     }
                     
-                    if (zipCode) {
-                        row.우편번호 = zipCode;
-                        if (typeof renderReportTable === 'function') {
-                            renderReportTable();
-                        }
+                    // 좌표 정보 수집 (lat, lng 추가)
+                    if (!row.lat || !row.lng) {
+                        row.lat = parseFloat(result[0].y);
+                        row.lng = parseFloat(result[0].x);
+                    }
+                    
+                    if (typeof renderReportTable === 'function') {
+                        renderReportTable();
                     }
                 }
             });
@@ -98,6 +107,12 @@ async function fetchPostalCodesForReport() {
         }
         
         await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    // 프로젝트 데이터 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
     }
 }
 
