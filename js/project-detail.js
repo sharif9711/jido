@@ -189,7 +189,7 @@ function renderReportTable() {
     if (!tbody) return;
     
     tbody.innerHTML = currentProject.data
-        .filter(row => row.이름 || row.연락처 || row.주소) // 입력된 자료만 표시
+        .filter(row => row.이름 || row.연락처 || row.주소)
         .map(row => `
         <tr class="hover:bg-slate-50">
             <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
@@ -207,6 +207,8 @@ function renderReportTable() {
             </td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
+            <td class="border border-slate-300 px-3 py-2 text-center">${row.본번 || '-'}</td>
+            <td class="border border-slate-300 px-3 py-2 text-center">${row.부번 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
             <td class="border border-slate-300 px-3 py-2 whitespace-pre-line">${row.기록사항 || '-'}</td>
@@ -313,7 +315,6 @@ async function fetchLandInfoForReport() {
         return;
     }
     
-    // 로딩 메시지 표시
     const loadingMsg = document.createElement('div');
     loadingMsg.id = 'landInfoLoading';
     loadingMsg.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg';
@@ -321,7 +322,6 @@ async function fetchLandInfoForReport() {
     document.body.appendChild(loadingMsg);
     
     let successCount = 0;
-    let failCount = 0;
     
     for (let i = 0; i < rowsWithAddress.length; i++) {
         const row = rowsWithAddress[i];
@@ -331,53 +331,43 @@ async function fetchLandInfoForReport() {
                 const detailInfo = await getAddressDetailInfo(row.주소);
                 
                 if (detailInfo) {
-                    // 법정동코드
-                    if (detailInfo.bjdCode) {
-                        row.법정동코드 = detailInfo.bjdCode;
-                    }
-                    
-                    // PNU코드
-                    if (detailInfo.pnuCode) {
-                        row.pnu코드 = detailInfo.pnuCode;
-                    }
-                    
-                    // 지목
-                    if (detailInfo.jimok) {
-                        row.지목 = detailInfo.jimok;
-                    }
-                    
-                    // 면적
-                    if (detailInfo.area) {
-                        row.면적 = detailInfo.area;
-                    }
-                    
-                    // 좌표 정보
+                    if (detailInfo.bjdCode) row.법정동코드 = detailInfo.bjdCode;
+                    if (detailInfo.pnuCode) row.pnu코드 = detailInfo.pnuCode;
+                    if (detailInfo.본번) row.본번 = detailInfo.본번;
+                    if (detailInfo.부번) row.부번 = detailInfo.부번;
+                    if (detailInfo.jimok) row.지목 = detailInfo.jimok;
+                    if (detailInfo.area) row.면적 = detailInfo.area;
                     if (detailInfo.lat && detailInfo.lon) {
                         row.lat = detailInfo.lat;
                         row.lng = detailInfo.lon;
                     }
-                    
-                    // 우편번호
-                    if (detailInfo.zipCode) {
-                        row.우편번호 = detailInfo.zipCode;
-                    }
+                    if (detailInfo.zipCode) row.우편번호 = detailInfo.zipCode;
                     
                     successCount++;
-                } else {
-                    failCount++;
                 }
             }
         } catch (error) {
             console.error('토지정보 수집 오류:', error);
-            failCount++;
         }
         
-        // 진행 상황 업데이트
         loadingMsg.textContent = `토지정보 수집 중... (${i + 1}/${rowsWithAddress.length})`;
-        
-        // API 호출 제한을 위한 지연 (700ms)
-        await new Promise(resolve => setTimeout(resolve, 700));
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
+    
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+    
+    renderReportTable();
+    document.body.removeChild(loadingMsg);
+    
+    if (successCount > 0) {
+        alert(`토지정보 수집 완료: ${successCount}건`);
+    } else {
+        alert('토지정보를 수집하지 못했습니다.');
+    }
+}
     
     // 프로젝트 데이터 저장
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);

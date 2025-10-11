@@ -19,10 +19,12 @@ function createInitialData() {
             상태: '예정',
             법정동코드: '',
             pnu코드: '',
+            본번: '',
+            부번: '',
             지목: '',
             면적: '',
             기록사항: '',
-            메모: []  // 메모 배열 추가
+            메모: []
         });
     }
     return initialData;
