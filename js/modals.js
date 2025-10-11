@@ -30,11 +30,13 @@ function createProject() {
 function openPasswordModal(projectId) {
     selectedProjectId = projectId;
     const project = projects.find(p => p.id === projectId);
-    document.getElementById('passwordProjectName').textContent = project.projectName;
-    document.getElementById('passwordModal').classList.add('active');
-    setTimeout(() => {
-        document.getElementById('enteredPassword').focus();
-    }, 100);
+    if (project) {
+        document.getElementById('passwordProjectName').textContent = project.projectName;
+        document.getElementById('passwordModal').classList.add('active');
+        setTimeout(() => {
+            document.getElementById('enteredPassword').focus();
+        }, 100);
+    }
 }
 
 function closePasswordModal() {
@@ -50,7 +52,14 @@ function checkPassword() {
     if (project && password === project.password) {
         currentProject = project;
         closePasswordModal();
-        showProjectDetail();
+        
+        // showProjectDetail 함수가 정의되어 있는지 확인
+        if (typeof showProjectDetail === 'function') {
+            showProjectDetail();
+        } else {
+            console.error('showProjectDetail function is not defined');
+            alert('프로젝트를 열 수 없습니다. 페이지를 새로고침해주세요.');
+        }
     } else {
         alert('비밀번호가 올바르지 않습니다.');
         document.getElementById('enteredPassword').value = '';
