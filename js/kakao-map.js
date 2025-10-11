@@ -328,19 +328,32 @@ function hideBottomInfoPanel() {
 }
 
 function openKakaoNavi(address, lat, lng) {
-    if (!lat || !lng) { alert('위치 정보가 없습니다.'); return; }
+    if (!lat || !lng) { 
+        alert('위치 정보가 없습니다.'); 
+        return; 
+    }
     
-    // 주소를 목적지 이름으로 사용
+    // 목적지 이름 설정
     const destination = address || '목적지';
-    const naviUrl = `kakaonavi://route?ep=${lng},${lat}&by=ROADMAP&name=${encodeURIComponent(destination)}`;
+    
+    // 카카오내비 앱 스킴 (간소화된 버전)
+    const naviUrl = `kakaonavi://navigate?ep=${lng},${lat}&name=${encodeURIComponent(destination)}`;
+    
+    // 웹 카카오맵 길찾기 URL
     const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(destination)},${lat},${lng}`;
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile) {
+        // 모바일: 먼저 카카오내비 앱 시도
         window.location.href = naviUrl;
-        setTimeout(() => window.open(webNaviUrl, '_blank'), 1000);
+        
+        // 1.5초 후에도 페이지가 그대로면 웹 버전 열기
+        setTimeout(() => {
+            window.open(webNaviUrl, '_blank');
+        }, 1500);
     } else {
+        // PC: 웹 버전 바로 열기
         window.open(webNaviUrl, '_blank');
     }
 }
