@@ -4,6 +4,9 @@ var vworldMap = null;
 var markers = [];
 const VWORLD_API_KEY = 'BE552462-0744-32DB-81E7-1B7317390D68';
 
+// JSONP 콜백 카운터
+let jsonpCallbackCounter = 0;
+
 // 지도 초기화
 function initVWorldMap() {
     if (!document.getElementById('vworldMap')) {
@@ -197,4 +200,147 @@ async function searchAddressOnMap(address) {
             duration: 1000
         });
     }
+}
+
+// JSONP 요청 함수
+function jsonpRequest(url) {
+    return new Promise((resolve, reject) => {
+        const callbackName = `vworld_callback_${jsonpCallbackCounter++}`;
+        const script = document.createElement('script');
+        
+        window[callbackName] = function(data) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(data);
+        };
+        
+        script.src = `${url}&callback=${callbackName}`;
+        script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error('JSONP request failed'));
+        };
+        
+        document.body.appendChild(script);
+        
+        // 타임아웃 설정 (10초)
+        setTimeout(() => {
+            if (window[callbackName]) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('JSONP request timeout'));
+            }
+        }, 10000);
+    });
+}
+
+// 좌표로 법정동코드 조회
+async function getBjdCode(lon, lat) {
+    try {
+        const url = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_ADEMD_INFO&key=${VWORLD_API_KEY}&domain=http://localhost&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json`;
+        
+        const data = await jsonpRequest(url);
+        
+        if (data.response && data.response.status === 'OK' && data.response.result && data.response.result.featureCollection) {
+            const features = data.response.result.featureCollection.features;
+            if (features && features.length > 0) {
+                return features[0].properties.full_nm || '';
+            }
+        }
+    } catch (error) {
+        console.error('법정동코드 조회 오류:', error);
+    }
+    return '';
+}
+
+// 좌표로 토지 정보 조회 (PNU코드, 지목, 면적)
+async function getLandInfo(lon, lat) {
+    try {
+        // WFS 서비스를 통한 토지 정보 조회
+        const url = `https://api.vworld.kr/req/wfs?service=WFS&request=GetFeature&typename=lp_pa_cbnd_bubun&key=${VWORLD_API_KEY}&domain=http://localhost&version=1.0.0&format=json&srsname=EPSG:4326&bbox=${lon-0.0001},${lat-0.0001},${lon+0.0001},${lat+0.0001}`;
+        
+        const data = await jsonpRequest(url);
+        
+        if (data.features && data.features.length > 0) {
+            const feature = data.features[0];
+            const props = feature.properties;
+            
+            return {
+                pnuCode: props.pnu || '',
+                jimok: props.jimok_text || props.lndcgr_nm || '',
+                area: props.lndpclr || props.ar || ''
+            };
+        }
+    } catch (error) {
+        console.error('토지 정보 조회 오류:', error);
+    }
+    
+    // 대체 방법: 개별공시지가 서비스 이용
+    try {
+        const url2 = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LP_PA_CBND_BUBUN&key=${VWORLD_API_KEY}&domain=http://localhost&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json`;
+        
+        const data2 = await jsonpRequest(url2);
+        
+        if (data2.response && data2.response.status === 'OK' && data2.response.result && data2.response.result.featureCollection) {
+            const features = data2.response.result.featureCollection.features;
+            if (features && features.length > 0) {
+                const props = features[0].properties;
+                return {
+                    pnuCode: props.pnu || '',
+                    jimok: props.lndcgr_nm || props.jimok || '',
+                    area: props.lndpclr || props.ar || ''
+                };
+            }
+        }
+    } catch (error) {
+        console.error('토지 정보 조회 오류 (대체 방법):', error);
+    }
+    
+    return {
+        pnuCode: '',
+        jimok: '',
+        area: ''
+    };
+}
+
+// 주소로 상세 정보 조회 (법정동코드, PNU, 지목, 면적 포함)
+async function getAddressDetailInfo(address) {
+    try {
+        // 먼저 좌표 획득
+        const url = `https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=${encodeURIComponent(address)}&refine=true&simple=false&format=json&type=road&key=${VWORLD_API_KEY}&domain=http://localhost`;
+        
+        const data = await jsonpRequest(url);
+        
+        if (data.response && data.response.status === 'OK' && data.response.result) {
+            const point = data.response.result.point;
+            const lon = parseFloat(point.x);
+            const lat = parseFloat(point.y);
+            
+            // 법정동코드 조회
+            const bjdCode = await getBjdCode(lon, lat);
+            
+            // 토지 정보 조회
+            const landInfo = await getLandInfo(lon, lat);
+            
+            // 우편번호 추출
+            let zipCode = '';
+            if (data.response.result.zipcode) {
+                zipCode = data.response.result.zipcode;
+            }
+            
+            return {
+                lon: lon,
+                lat: lat,
+                zipCode: zipCode,
+                bjdCode: bjdCode,
+                pnuCode: landInfo.pnuCode,
+                jimok: landInfo.jimok,
+                area: landInfo.area
+            };
+        }
+    } catch (error) {
+        console.error('주소 상세 정보 조회 오류:', error);
+    }
+    
+    return null;
 }

@@ -71,12 +71,12 @@ async function fetchPostalCodesForReport() {
     
     if (rowsWithAddress.length === 0) return;
     
-    // 백그라운드에서 우편번호 및 좌표 수집
+    // 백그라운드에서 우편번호, 좌표 및 VWorld 토지정보 수집
     for (let i = 0; i < Math.min(rowsWithAddress.length, 10); i++) {
         const row = rowsWithAddress[i];
         
         try {
-            geocoder.addressSearch(row.주소, function(result, status) {
+            geocoder.addressSearch(row.주소, async function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     // 우편번호 수집
                     if (!row.우편번호) {
@@ -97,6 +97,36 @@ async function fetchPostalCodesForReport() {
                         row.lng = parseFloat(result[0].x);
                     }
                     
+                    // VWorld API를 통한 토지 정보 수집
+                    if (typeof getAddressDetailInfo === 'function') {
+                        try {
+                            const detailInfo = await getAddressDetailInfo(row.주소);
+                            if (detailInfo) {
+                                // 법정동코드
+                                if (!row.법정동코드 && detailInfo.bjdCode) {
+                                    row.법정동코드 = detailInfo.bjdCode;
+                                }
+                                
+                                // PNU코드
+                                if (!row.pnu코드 && detailInfo.pnuCode) {
+                                    row.pnu코드 = detailInfo.pnuCode;
+                                }
+                                
+                                // 지목
+                                if (!row.지목 && detailInfo.jimok) {
+                                    row.지목 = detailInfo.jimok;
+                                }
+                                
+                                // 면적
+                                if (!row.면적 && detailInfo.area) {
+                                    row.면적 = detailInfo.area;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('VWorld API 조회 오류:', error);
+                        }
+                    }
+                    
                     if (typeof renderReportTable === 'function') {
                         renderReportTable();
                     }
@@ -106,7 +136,7 @@ async function fetchPostalCodesForReport() {
             console.error('Geocoding error:', error);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // 프로젝트 데이터 저장
@@ -195,7 +225,7 @@ function updateMapCount() {
     if (!mapCount) return;
     
     const count = currentProject.data.filter(row => row.주소).length;
-    mapCount.textContent = `총 ${count}개의 주소`;
+    mapCount.textContent = `이 ${count}개의 주소`;
 }
 
 function updateCellAndRefresh(rowId, field, value) {
@@ -265,4 +295,105 @@ function downloadExcel() {
     document.body.removeChild(link);
     
     alert(`"${fileName}" 파일이 다운로드되었습니다.`);
+}
+
+// VWorld API를 통한 토지정보 수집
+async function fetchLandInfoForReport() {
+    if (!currentProject) {
+        alert('프로젝트가 선택되지 않았습니다.');
+        return;
+    }
+    
+    const rowsWithAddress = currentProject.data.filter(row => 
+        row.주소 && row.주소.trim() !== '' && (row.이름 || row.연락처)
+    );
+    
+    if (rowsWithAddress.length === 0) {
+        alert('주소가 입력된 데이터가 없습니다.');
+        return;
+    }
+    
+    if (!confirm(`${rowsWithAddress.length}개의 주소에 대해 토지정보를 수집하시겠습니까?\n\n※ VWorld API를 사용하여 법정동코드, PNU코드, 지목, 면적 정보를 가져옵니다.\n※ 처리 시간이 다소 소요될 수 있습니다.`)) {
+        return;
+    }
+    
+    // 로딩 메시지 표시
+    const loadingMsg = document.createElement('div');
+    loadingMsg.id = 'landInfoLoading';
+    loadingMsg.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg';
+    loadingMsg.textContent = '토지정보 수집 중... (0/' + rowsWithAddress.length + ')';
+    document.body.appendChild(loadingMsg);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < rowsWithAddress.length; i++) {
+        const row = rowsWithAddress[i];
+        
+        try {
+            if (typeof getAddressDetailInfo === 'function') {
+                const detailInfo = await getAddressDetailInfo(row.주소);
+                
+                if (detailInfo) {
+                    // 법정동코드
+                    if (detailInfo.bjdCode) {
+                        row.법정동코드 = detailInfo.bjdCode;
+                    }
+                    
+                    // PNU코드
+                    if (detailInfo.pnuCode) {
+                        row.pnu코드 = detailInfo.pnuCode;
+                    }
+                    
+                    // 지목
+                    if (detailInfo.jimok) {
+                        row.지목 = detailInfo.jimok;
+                    }
+                    
+                    // 면적
+                    if (detailInfo.area) {
+                        row.면적 = detailInfo.area;
+                    }
+                    
+                    // 좌표 정보
+                    if (detailInfo.lat && detailInfo.lon) {
+                        row.lat = detailInfo.lat;
+                        row.lng = detailInfo.lon;
+                    }
+                    // 우편번호
+                    if (detailInfo.zipCode) {
+                        row.우편번호 = detailInfo.zipCode;
+                    }
+                    
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            }
+        } catch (error) {
+            console.error('토지정보 수집 오류:', error);
+            failCount++;
+        }
+        
+        // 진행 상황 업데이트
+        loadingMsg.textContent = `토지정보 수집 중... (${i + 1}/${rowsWithAddress.length}) - 성공: ${successCount}, 실패: ${failCount}`;
+        
+        // API 호출 제한을 위한 지연 (500ms)
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // 프로젝트 데이터 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+    
+    // 보고서 테이블 업데이트
+    renderReportTable();
+    
+    // 로딩 메시지 제거
+    document.body.removeChild(loadingMsg);
+    
+    // 결과 메시지
+    alert(`토지정보 수집 완료!\n\n총 ${rowsWithAddress.length}개 주소 처리\n성공: ${successCount}개\n실패: ${failCount}개\n\n※ VWorld API의 데이터 제공 범위에 따라 일부 정보가 누락될 수 있습니다.`);
 }
