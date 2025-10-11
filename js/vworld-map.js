@@ -1,4 +1,4 @@
-// VWorld 지도 관련 함수
+\// VWorld 지도 관련 함수
 
 var vworldMap = null;
 var markers = [];
@@ -293,26 +293,84 @@ function convertJimokCode(code) {
     return code;
 }
 
-// 주소에서 지번 추출
+// 주소에서 지번 추출 (산 지번 처리 개선)
 function extractJibun(address) {
-    // 주소에서 숫자-숫자 패턴 찾기 (예: 76-17, 123-4)
-    const jibunPattern = /(\d+)-(\d+)|(\d+)번지/g;
+    // "산"이 포함되어 있는지 확인
+    const isSan = /\s산\s|\s산(?=\d)/.test(address);
+    
+    // 주소에서 숫자-숫자 패턴 또는 산 다음의 숫자 찾기
+    let jibunPattern;
+    if (isSan) {
+        // 산 지번: "산 15" 또는 "산15-3" 형태
+        jibunPattern = /산\s*(\d+)(?:-(\d+))?/;
+    } else {
+        // 일반 지번: "76-17" 또는 "123번지" 형태
+        jibunPattern = /(\d+)(?:-(\d+))?(?:\s*번지)?/g;
+    }
+    
     const matches = address.match(jibunPattern);
     
     if (matches && matches.length > 0) {
-        const lastMatch = matches[matches.length - 1];
-        const parts = lastMatch.replace('번지', '').split('-');
+        let bonbun = '0000';
+        let bubun = '0000';
+        
+        if (isSan) {
+            // 산 지번 처리
+            const sanMatch = /산\s*(\d+)(?:-(\d+))?/.exec(address);
+            if (sanMatch) {
+                bonbun = sanMatch[1] ? sanMatch[1].padStart(4, '0') : '0000';
+                bubun = sanMatch[2] ? sanMatch[2].padStart(4, '0') : '0000';
+            }
+        } else {
+            // 일반 지번 처리 - 마지막 매치 사용
+            const lastMatch = matches[matches.length - 1];
+            const numberPattern = /(\d+)(?:-(\d+))?/;
+            const parts = lastMatch.match(numberPattern);
+            if (parts) {
+                bonbun = parts[1] ? parts[1].padStart(4, '0') : '0000';
+                bubun = parts[2] ? parts[2].padStart(4, '0') : '0000';
+            }
+        }
         
         return {
-            본번: parts[0] ? parts[0].padStart(4, '0') : '0000',
-            부번: parts[1] ? parts[1].padStart(4, '0') : '0000'
+            본번: bonbun,
+            부번: bubun,
+            isSan: isSan
         };
     }
     
-    return { 본번: '0000', 부번: '0000' };
+    return { 본번: '0000', 부번: '0000', isSan: false };
 }
 
-// 주소로 상세 정보 조회 (카카오 + VWorld JSONP)
+// VWorld API로 우편번호 조회 (JSONP)
+async function getZipCodeFromVWorld(lon, lat) {
+    try {
+        const url = `https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=${lon},${lat}&type=both&zipcode=true&simple=false&key=${VWORLD_API_KEY}&format=json&domain=`;
+        
+        const data = await vworldJsonp(url);
+        
+        if (data.response && data.response.status === 'OK' && data.response.result) {
+            // 지번 주소의 우편번호 우선
+            if (data.response.result.zipcode) {
+                return data.response.result.zipcode;
+            }
+            // 또는 구조체에서 찾기
+            if (data.response.result.juso) {
+                if (data.response.result.juso.parcel && data.response.result.juso.parcel.zipcode) {
+                    return data.response.result.juso.parcel.zipcode;
+                }
+                if (data.response.result.juso.road && data.response.result.juso.road.zipcode) {
+                    return data.response.result.juso.road.zipcode;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('VWorld 우편번호 조회 실패:', error.message);
+    }
+    return '';
+}
+
+// 주소로 상세 정보 조회 (개선 버전)
 async function getAddressDetailInfo(address) {
     try {
         console.log('=== 주소 조회 시작 ===');
@@ -351,7 +409,7 @@ async function getAddressDetailInfo(address) {
                 
                 console.log('카카오 좌표:', { lon: result.lon, lat: result.lat });
                 
-                // 우편번호
+                // 우편번호 (도로명 주소 우선)
                 if (kakaoResult.road_address && kakaoResult.road_address.zone_no) {
                     result.zipCode = kakaoResult.road_address.zone_no;
                 } else if (kakaoResult.address && kakaoResult.address.zip_code) {
@@ -364,32 +422,43 @@ async function getAddressDetailInfo(address) {
                 }
                 
                 // 지번 주소에서 본번, 부번 추출
-                let jibunAddress = '';
+                let jibunAddress = address; // 원본 주소 사용
                 if (kakaoResult.address && kakaoResult.address.address_name) {
                     jibunAddress = kakaoResult.address.address_name;
-                } else if (kakaoResult.road_address && kakaoResult.road_address.address_name) {
-                    jibunAddress = kakaoResult.road_address.address_name;
                 }
                 
                 if (jibunAddress) {
                     const jibunInfo = extractJibun(jibunAddress);
                     result.본번 = jibunInfo.본번;
                     result.부번 = jibunInfo.부번;
-                }
-                
-                // PNU 코드 생성 (법정동코드 + 대장구분 + 본번 + 부번)
-                if (result.bjdCode && result.bjdCode.length === 10) {
-                    result.pnuCode = result.bjdCode + '1' + result.본번 + result.부번;
+                    
+                    // "산" 지번이면 대장구분을 임야로 설정
+                    if (jibunInfo.isSan) {
+                        result.대장구분 = '임야';
+                    }
                 }
                 
                 console.log('카카오 정보:', { 
                     우편번호: result.zipCode, 
                     법정동코드: result.bjdCode,
-                    PNU코드: result.pnuCode,
                     본번: result.본번,
-                    부번: result.부번
+                    부번: result.부번,
+                    대장구분: result.대장구분
                 });
             }
+        }
+        
+        // 우편번호가 없으면 VWorld로 재시도
+        if (!result.zipCode && result.lon && result.lat) {
+            result.zipCode = await getZipCodeFromVWorld(result.lon, result.lat);
+            console.log('VWorld 우편번호:', result.zipCode);
+        }
+        
+        // PNU 코드 생성
+        if (result.bjdCode && result.bjdCode.length === 10) {
+            const 대장구분코드 = result.대장구분 === '임야' ? '2' : '1';
+            result.pnuCode = result.bjdCode + 대장구분코드 + result.본번 + result.부번;
+            console.log('생성된 PNU:', result.pnuCode);
         }
         
         // 2단계: VWorld API로 지목, 면적 조회 (JSONP 방식)
@@ -406,6 +475,8 @@ async function getAddressDetailInfo(address) {
                     if (features && features.length > 0) {
                         const props = features[0].properties;
                         
+                        console.log('VWorld properties:', props);
+                        
                         // PNU 보완
                         if (!result.pnuCode && props.pnu) {
                             result.pnuCode = props.pnu;
@@ -417,22 +488,33 @@ async function getAddressDetailInfo(address) {
                             }
                         }
                         
-                        // 지목
+                        // 지목 (여러 필드명 시도)
                         if (props.jimok) {
                             result.jimok = convertJimokCode(props.jimok);
                         } else if (props.lndcgrCodeNm) {
                             result.jimok = props.lndcgrCodeNm;
                         } else if (props.lndcgr) {
                             result.jimok = convertJimokCode(props.lndcgr);
+                        } else if (props.landCategory) {
+                            result.jimok = props.landCategory;
+                        } else if (props.jm) {
+                            result.jimok = convertJimokCode(props.jm);
                         }
                         
-                        // 면적
+                        // 면적 (여러 필드명 시도)
+                        let areaValue = null;
                         if (props.lndpclAr) {
-                            const areaNum = parseFloat(props.lndpclAr);
-                            result.area = areaNum.toFixed(2) + '㎡';
+                            areaValue = parseFloat(props.lndpclAr);
                         } else if (props.pblntfPclnd) {
-                            const areaNum = parseFloat(props.pblntfPclnd);
-                            result.area = areaNum.toFixed(2) + '㎡';
+                            areaValue = parseFloat(props.pblntfPclnd);
+                        } else if (props.area) {
+                            areaValue = parseFloat(props.area);
+                        } else if (props.ar) {
+                            areaValue = parseFloat(props.ar);
+                        }
+                        
+                        if (areaValue && !isNaN(areaValue)) {
+                            result.area = areaValue.toFixed(2) + '㎡';
                         }
                         
                         console.log('VWorld 토지정보:', {
