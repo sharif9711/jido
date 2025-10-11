@@ -275,7 +275,7 @@ function extractJibun(address) {
     return { 본번: '0000', 부번: '0000' };
 }
 
-// 주소로 상세 정보 조회 (개선된 버전 - 카카오 API 중심)
+// 주소로 상세 정보 조회 (카카오 API 전용 - CORS 문제 해결)
 async function getAddressDetailInfo(address) {
     try {
         console.log('=== 주소 조회 시작 ===');
@@ -287,14 +287,14 @@ async function getAddressDetailInfo(address) {
             zipCode: '',
             bjdCode: '',
             pnuCode: '',
-            대장구분: '',
+            대장구분: '토지',
             본번: '0000',
             부번: '0000',
             jimok: '',
             area: ''
         };
         
-        // 1단계: 카카오 API로 기본 정보 획득
+        // 카카오 API로 정보 획득
         if (typeof kakao !== 'undefined' && kakao.maps && kakao.maps.services) {
             const geocoder = new kakao.maps.services.Geocoder();
             
@@ -340,104 +340,18 @@ async function getAddressDetailInfo(address) {
                     result.부번 = jibunInfo.부번;
                 }
                 
+                // PNU 코드 생성 (법정동코드 + 대장구분 + 본번 + 부번)
+                if (result.bjdCode && result.bjdCode.length === 10) {
+                    result.pnuCode = result.bjdCode + '1' + result.본번 + result.부번;
+                }
+                
                 console.log('카카오 정보:', { 
                     우편번호: result.zipCode, 
                     법정동코드: result.bjdCode,
+                    PNU코드: result.pnuCode,
                     본번: result.본번,
                     부번: result.부번
                 });
-            }
-        }
-        
-        // 2단계: VWorld API로 PNU 및 토지정보 조회 (fetch 사용 - CORS 허용되는 엔드포인트)
-        if (result.lon && result.lat) {
-            try {
-                // VWorld 주소API로 상세정보 조회
-                const vworldUrl = `https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=${result.lon},${result.lat}&type=both&zipcode=true&simple=false&key=${VWORLD_API_KEY}&format=json`;
-                
-                const vworldResponse = await fetch(vworldUrl);
-                const vworldData = await vworldResponse.json();
-                
-                console.log('VWorld 주소 응답:', vworldData);
-                
-                if (vworldData.response && vworldData.response.status === 'OK' && vworldData.response.result) {
-                    const vwResult = vworldData.response.result;
-                    
-                    // PNU 코드 (지번 주소에서)
-                    if (vwResult.juso && vwResult.juso.parcel) {
-                        const parcel = vwResult.juso.parcel;
-                        
-                        // 법정동코드 (10자리) + 대장구분(1) + 본번(4) + 부번(4) = PNU (19자리)
-                        if (parcel.lnbrMnnm && parcel.lnbrSlno !== undefined) {
-                            const 법정동코드 = result.bjdCode || parcel.ldCodeMnnm || '';
-                            const 대장구분코드 = parcel.lnbrSlno === '0' ? '1' : '1'; // 기본값 토지
-                            const 본번 = String(parcel.lnbrMnnm || 0).padStart(4, '0');
-                            const 부번 = String(parcel.lnbrSlno || 0).padStart(4, '0');
-                            
-                            if (법정동코드.length === 10) {
-                                result.pnuCode = 법정동코드 + 대장구분코드 + 본번 + 부번;
-                                result.본번 = 본번;
-                                result.부번 = 부번;
-                            }
-                        }
-                    }
-                    
-                    // 우편번호 보완
-                    if (!result.zipCode && vwResult.zipcode) {
-                        result.zipCode = vwResult.zipcode;
-                    }
-                }
-            } catch (error) {
-                console.error('VWorld 주소 API 오류:', error);
-            }
-            
-            // 3단계: 토지특성 API로 지목, 면적 조회
-            try {
-                const landUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_SPJIJIGA&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${result.lon} ${result.lat})&geometry=false&size=1&format=json`;
-                
-                const landResponse = await fetch(landUrl);
-                const landData = await landResponse.json();
-                
-                console.log('토지특성 응답:', landData);
-                
-                if (landData.response && landData.response.status === 'OK') {
-                    const features = landData.response.result?.featureCollection?.features;
-                    if (features && features.length > 0) {
-                        const props = features[0].properties;
-                        
-                        // PNU 보완
-                        if (!result.pnuCode && props.pnu) {
-                            result.pnuCode = props.pnu;
-                        }
-                        
-                        // 지목
-                        if (props.ladUseSittn) {
-                            result.jimok = convertJimokCode(props.ladUseSittn);
-                        } else if (props.lndcgr) {
-                            result.jimok = convertJimokCode(props.lndcgr);
-                        }
-                        
-                        // 면적
-                        if (props.pblntfPclnd) {
-                            const areaNum = parseFloat(props.pblntfPclnd);
-                            result.area = areaNum.toFixed(2) + '㎡';
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('토지특성 API 오류:', error);
-            }
-        }
-        
-        // PNU가 있으면 대장구분 분석
-        if (result.pnuCode) {
-            const pnuInfo = analyzePNU(result.pnuCode);
-            result.대장구분 = pnuInfo.대장구분;
-            
-            // 본번, 부번이 없으면 PNU에서 추출
-            if (result.본번 === '0000') {
-                result.본번 = pnuInfo.본번;
-                result.부번 = pnuInfo.부번;
             }
         }
         
