@@ -336,8 +336,8 @@ function openKakaoNavi(address, lat, lng) {
     // 목적지 이름 설정
     const destination = address || '목적지';
     
-    // 카카오내비 앱 스킴 (간소화된 버전)
-    const naviUrl = `kakaonavi://navigate?ep=${lng},${lat}&name=${encodeURIComponent(destination)}`;
+    // 카카오내비 앱 스킴 (올바른 파라미터 형식)
+    const naviUrl = `kakaonavi://navigate?ep=${lng},${lat}&by=KATEC`;
     
     // 웹 카카오맵 길찾기 URL
     const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(destination)},${lat},${lng}`;
@@ -346,18 +346,22 @@ function openKakaoNavi(address, lat, lng) {
     
     if (isMobile) {
         // 모바일: 먼저 카카오내비 앱 시도
-        window.location.href = naviUrl;
+        const appLink = document.createElement('a');
+        appLink.href = naviUrl;
+        appLink.style.display = 'none';
+        document.body.appendChild(appLink);
+        appLink.click();
+        document.body.removeChild(appLink);
         
-        // 1.5초 후에도 페이지가 그대로면 웹 버전 열기
+        // 1초 후에도 페이지가 그대로면 웹 버전 열기
         setTimeout(() => {
             window.open(webNaviUrl, '_blank');
-        }, 1500);
+        }, 1000);
     } else {
         // PC: 웹 버전 바로 열기
         window.open(webNaviUrl, '_blank');
     }
 }
-
 function changeMarkerStatus(markerIndex, newStatus) {
     if (!currentProject || !kakaoMarkers[markerIndex]) return;
     const markerData = kakaoMarkers[markerIndex].rowData;
