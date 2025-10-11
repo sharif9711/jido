@@ -112,6 +112,14 @@ async function fetchPostalCodesForReport() {
                                     row.pnu코드 = detailInfo.pnuCode;
                                 }
                                 
+                                // 본번, 부번
+                                if (!row.본번 && detailInfo.본번) {
+                                    row.본번 = detailInfo.본번;
+                                }
+                                if (!row.부번 && detailInfo.부번) {
+                                    row.부번 = detailInfo.부번;
+                                }
+                                
                                 // 지목
                                 if (!row.지목 && detailInfo.jimok) {
                                     row.지목 = detailInfo.jimok;
@@ -262,7 +270,7 @@ function downloadExcel() {
     }
 
     // CSV 형식으로 데이터 생성
-    const headers = ['순번', '이름', '연락처', '주소', '우편번호', '상태', '법정동코드', 'PNU코드', '지목', '면적', '기록사항'];
+    const headers = ['순번', '이름', '연락처', '주소', '우편번호', '상태', '법정동코드', 'PNU코드', '본번', '부번', '지목', '면적', '기록사항'];
     const csvContent = [
         headers.join(','),
         ...filteredData.map(row => [
@@ -274,6 +282,8 @@ function downloadExcel() {
             row.상태,
             `"${row.법정동코드 || ''}"`,
             `"${row.pnu코드 || ''}"`,
+            `"${row.본번 || ''}"`,
+            `"${row.부번 || ''}"`,
             `"${row.지목 || ''}"`,
             `"${row.면적 || ''}"`,
             `"${(row.기록사항 || '').replace(/\n/g, ' ')}"`
@@ -315,6 +325,7 @@ async function fetchLandInfoForReport() {
         return;
     }
     
+    // 로딩 메시지 표시
     const loadingMsg = document.createElement('div');
     loadingMsg.id = 'landInfoLoading';
     loadingMsg.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg';
@@ -353,21 +364,6 @@ async function fetchLandInfoForReport() {
         loadingMsg.textContent = `토지정보 수집 중... (${i + 1}/${rowsWithAddress.length})`;
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    
-    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
-    if (projectIndex !== -1) {
-        projects[projectIndex] = currentProject;
-    }
-    
-    renderReportTable();
-    document.body.removeChild(loadingMsg);
-    
-    if (successCount > 0) {
-        alert(`토지정보 수집 완료: ${successCount}건`);
-    } else {
-        alert('토지정보를 수집하지 못했습니다.');
-    }
-}
     
     // 프로젝트 데이터 저장
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);
