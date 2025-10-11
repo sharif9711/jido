@@ -1,4 +1,4 @@
-\// VWorld 지도 관련 함수
+// VWorld 지도 관련 함수
 
 var vworldMap = null;
 var markers = [];
@@ -10,7 +10,7 @@ let vworldCallbackId = 0;
 // JSONP 방식으로 VWorld API 호출 (CORS 우회)
 function vworldJsonp(url) {
     return new Promise((resolve, reject) => {
-        const callbackName = `vworldCallback${vworldCallbackId++}`;
+        const callbackName = 'vworldCallback' + vworldCallbackId++;
         
         window[callbackName] = function(data) {
             delete window[callbackName];
@@ -61,7 +61,7 @@ function initVWorldMap() {
         layers: [
             new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Base/{z}/{y}/{x}.png'
                 })
             })
         ],
@@ -81,7 +81,7 @@ async function geocodeAddress(address) {
     }
 
     try {
-        const url = `https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=${encodeURIComponent(address)}&refine=true&simple=false&format=json&type=road&key=${VWORLD_API_KEY}`;
+        const url = 'https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=' + encodeURIComponent(address) + '&refine=true&simple=false&format=json&type=road&key=' + VWORLD_API_KEY;
         
         const response = await fetch(url);
         const data = await response.json();
@@ -178,7 +178,7 @@ async function displayProjectOnMap(projectData) {
     }
 
     document.getElementById('mapLoadingStatus').style.display = 'block';
-    document.getElementById('mapLoadingStatus').textContent = `주소 검색 중... (0/${addressesWithData.length})`;
+    document.getElementById('mapLoadingStatus').textContent = '주소 검색 중... (0/' + addressesWithData.length + ')';
 
     const coordinates = [];
     let successCount = 0;
@@ -188,13 +188,13 @@ async function displayProjectOnMap(projectData) {
         const coord = await geocodeAddress(row.주소);
         
         if (coord) {
-            addMarker(coord, row.이름 || `#${row.순번}`, row.상태);
+            addMarker(coord, row.이름 || '#' + row.순번, row.상태);
             coordinates.push([coord.lon, coord.lat]);
             successCount++;
         }
 
         document.getElementById('mapLoadingStatus').textContent = 
-            `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+            '주소 검색 중... (' + (i + 1) + '/' + addressesWithData.length + ') - 성공: ' + successCount + '개';
         
         await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -211,7 +211,7 @@ async function displayProjectOnMap(projectData) {
         });
     }
 
-    alert(`이 ${addressesWithData.length}개 주소 중 ${successCount}개를 지도에 표시했습니다.`);
+    alert('이 ' + addressesWithData.length + '개 주소 중 ' + successCount + '개를 지도에 표시했습니다.');
 }
 
 function onMapTabActivated() {
@@ -345,7 +345,7 @@ function extractJibun(address) {
 // VWorld API로 우편번호 조회 (JSONP)
 async function getZipCodeFromVWorld(lon, lat) {
     try {
-        const url = `https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=${lon},${lat}&type=both&zipcode=true&simple=false&key=${VWORLD_API_KEY}&format=json&domain=`;
+        const url = 'https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&point=' + lon + ',' + lat + '&type=both&zipcode=true&simple=false&key=' + VWORLD_API_KEY + '&format=json&domain=';
         
         const data = await vworldJsonp(url);
         
@@ -464,7 +464,7 @@ async function getAddressDetailInfo(address) {
         // 2단계: VWorld API로 지목, 면적 조회 (JSONP 방식)
         if (result.lon && result.lat) {
             try {
-                const landUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_SPJIJIGA&key=${VWORLD_API_KEY}&geomFilter=POINT(${result.lon} ${result.lat})&geometry=false&size=1&format=json&domain=`;
+                const landUrl = 'https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_SPJIJIGA&key=' + VWORLD_API_KEY + '&geomFilter=POINT(' + result.lon + ' ' + result.lat + ')&geometry=false&size=1&format=json&domain=';
                 
                 const landData = await vworldJsonp(landUrl);
                 
