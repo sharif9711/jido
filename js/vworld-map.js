@@ -366,9 +366,9 @@ async function getZipCodeFromKakao(address) {
             if (result.road_address && result.road_address.zone_no) {
                 return result.road_address.zone_no;
             }
-            // 지번 주소 우편번호
-            if (result.address && result.address.zip_code) {
-                return result.address.zip_code;
+            // 지번 주소 우편번호 (address 객체의 zone_no)
+            if (result.address && result.address.zone_no) {
+                return result.address.zone_no;
             }
         }
     } catch (error) {

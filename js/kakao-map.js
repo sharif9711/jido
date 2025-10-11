@@ -41,12 +41,15 @@ function geocodeAddressKakao(address) {
         }
         geocoder.addressSearch(address, function(result, status) {
             if (status === kakao.maps.services.Status.OK) {
-                // 우편번호 추출 (도로명 주소 우선, 없으면 지번 주소)
+                // 우편번호 추출 (도로명 주소 우선, 없으면 지번 주소에서도 road_address 확인)
                 let zipCode = '';
                 if (result[0].road_address && result[0].road_address.zone_no) {
                     zipCode = result[0].road_address.zone_no;
-                } else if (result[0].address && result[0].address.zip_code) {
-                    zipCode = result[0].address.zip_code;
+                } else if (result[0].address) {
+                    // 지번 주소로 검색했어도 road_address가 있을 수 있음
+                    if (result[0].address.zone_no) {
+                        zipCode = result[0].address.zone_no;
+                    }
                 }
                 
                 resolve({
@@ -260,33 +263,38 @@ function showBottomInfoPanel(rowData, markerIndex) {
     const panel = document.getElementById('bottomInfoPanel');
     if (!panel) return;
     
-    const markersHtml = sameAddressMarkers.map((markerInfo, idx) => {
-        const data = markerInfo.data;
-        const mIdx = markerInfo.index;
-        const memos = data.메모 || [];
-        const memosHtml = memos.length > 0 
-            ? memos.map((memo, i) => `<div class="text-xs text-slate-600 mb-1"><span class="font-semibold">${i + 1}.</span> ${memo.내용} <span class="text-slate-400">(${memo.시간})</span></div>`).join('')
-            : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
-        
-        return `<div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
-            <div class="mb-4 pr-8">
-                <h3 class="text-xl font-bold text-slate-900 mb-2">${data.순번}. ${data.이름 || '이름없음'}</h3>
-                <div class="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
-                    <a href="tel:${data.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 ${!data.연락처 ? 'pointer-events-none opacity-50' : ''}">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        <span class="underline">${data.연락처 || '-'}</span>
-                    </a>
-                    <div class="flex items-center gap-2">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <span class="text-xs">${data.주소}</span>
-                        <button onclick="openKakaoNavi('${data.주소.replace(/'/g, "\\'")}', ${data.lat || 0}, ${data.lng || 0})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors" title="카카오내비로 안내">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                            </svg>
-                        </button>
+        const markersHtml = sameAddressMarkers.map((markerInfo, idx) => {
+            const data = markerInfo.data;
+            const mIdx = markerInfo.index;
+            const memos = data.메모 || [];
+            
+            // 좌표 정보 확인
+            const markerLat = data.lat || 0;
+            const markerLng = data.lng || 0;
+            
+            const memosHtml = memos.length > 0 
+                ? memos.map((memo, i) => `<div class="text-xs text-slate-600 mb-1"><span class="font-semibold">${i + 1}.</span> ${memo.내용} <span class="text-slate-400">(${memo.시간})</span></div>`).join('')
+                : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+            
+            return `<div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
+                <div class="mb-4 pr-8">
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">${data.순번}. ${data.이름 || '이름없음'}</h3>
+                    <div class="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
+                        <a href="tel:${data.연락처 || ''}" class="flex items-center gap-2 hover:text-blue-600 ${!data.연락처 ? 'pointer-events-none opacity-50' : ''}">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <span class="underline">${data.연락처 || '-'}</span>
+                        </a>
+                        <div class="flex items-center gap-2">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span class="text-xs">${data.주소}</span>
+                            <button onclick="openKakaoNavi('${(data.주소 || '').replace(/'/g, "\\'")}', ${markerLat}, ${markerLng})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors ${!markerLat || !markerLng ? 'opacity-50 cursor-not-allowed' : ''}" title="카카오내비로 안내" ${!markerLat || !markerLng ? 'disabled' : ''}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 mb-2">상태</label>
                 <div class="flex gap-2">
@@ -362,6 +370,7 @@ function openKakaoNavi(address, lat, lng) {
         window.open(webNaviUrl, '_blank');
     }
 }
+
 function changeMarkerStatus(markerIndex, newStatus) {
     if (!currentProject || !kakaoMarkers[markerIndex]) return;
     const markerData = kakaoMarkers[markerIndex].rowData;
