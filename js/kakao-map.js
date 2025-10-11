@@ -304,13 +304,32 @@ function showBottomInfoPanel(rowData, markerIndex) {
         const mIdx = markerInfo.index;
         const memos = data.메모 || [];
         
-        // 좌표 정보 확인
-        const markerLat = data.lat || 0;
-        const markerLng = data.lng || 0;
+        // 좌표 정보를 kakaoMarkers에서 직접 가져오기 (더 확실함)
+        let markerLat = 0;
+        let markerLng = 0;
+        
+        if (kakaoMarkers[mIdx] && kakaoMarkers[mIdx].marker) {
+            const position = kakaoMarkers[mIdx].marker.getPosition();
+            if (position) {
+                markerLat = position.getLat();
+                markerLng = position.getLng();
+            }
+        }
+        
+        // 위에서 못 가져왔으면 data에서 가져오기
+        if (!markerLat || !markerLng) {
+            markerLat = parseFloat(data.lat) || 0;
+            markerLng = parseFloat(data.lng) || 0;
+        }
+        
+        console.log(`마커 ${mIdx} 좌표:`, { markerLat, markerLng, data }); // 디버깅용
         
         const memosHtml = memos.length > 0 
             ? memos.map((memo, i) => `<div class="text-xs text-slate-600 mb-1"><span class="font-semibold">${i + 1}.</span> ${memo.내용} <span class="text-slate-400">(${memo.시간})</span></div>`).join('')
             : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
+        
+        // 주소에서 따옴표 이스케이프 처리
+        const escapedAddress = (data.주소 || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
         return `<div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
             <div class="mb-4 pr-8">
@@ -323,7 +342,7 @@ function showBottomInfoPanel(rowData, markerIndex) {
                     <div class="flex items-center gap-2">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         <span class="text-xs">${data.주소}</span>
-                        <button onclick="openKakaoNavi('${(data.주소 || '').replace(/'/g, "\\'")}', ${markerLat}, ${markerLng})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors ${!markerLat || !markerLng ? 'opacity-50 cursor-not-allowed' : ''}" title="카카오내비로 안내" ${!markerLat || !markerLng ? 'disabled' : ''}>
+                        <button onclick="openKakaoNavi('${escapedAddress}', ${markerLat}, ${markerLng})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors ${!markerLat || !markerLng ? 'opacity-50 cursor-not-allowed' : ''}" title="카카오내비로 안내" ${!markerLat || !markerLng ? 'disabled' : ''}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
