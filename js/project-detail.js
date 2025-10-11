@@ -198,30 +198,36 @@ function renderReportTable() {
     
     tbody.innerHTML = currentProject.data
         .filter(row => row.이름 || row.연락처 || row.주소)
-        .map(row => `
-        <tr class="hover:bg-slate-50">
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
-            <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.우편번호 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">
-                <select onchange="updateReportStatus('${row.id}', this.value)" 
-                    class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(row.상태)} border-0 cursor-pointer">
-                    <option value="예정" ${row.상태 === '예정' ? 'selected' : ''}>예정</option>
-                    <option value="완료" ${row.상태 === '완료' ? 'selected' : ''}>완료</option>
-                    <option value="보류" ${row.상태 === '보류' ? 'selected' : ''}>보류</option>
-                </select>
-            </td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.본번 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.부번 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
-            <td class="border border-slate-300 px-3 py-2 whitespace-pre-line">${row.기록사항 || '-'}</td>
-        </tr>
-    `).join('');
+        .map(row => {
+            // 본번, 부번 4자리 형식으로 변환
+            const 본번 = row.본번 ? String(row.본번).padStart(4, '0') : '0000';
+            const 부번 = row.부번 ? String(row.부번).padStart(4, '0') : '0000';
+            
+            return `
+            <tr class="hover:bg-slate-50">
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.순번}</td>
+                <td class="border border-slate-300 px-3 py-2">${row.이름}</td>
+                <td class="border border-slate-300 px-3 py-2">${row.연락처}</td>
+                <td class="border border-slate-300 px-3 py-2">${row.주소}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.우편번호 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">
+                    <select onchange="updateReportStatus('${row.id}', this.value)" 
+                        class="px-2 py-1 rounded text-xs font-medium ${getStatusColor(row.상태)} border-0 cursor-pointer">
+                        <option value="예정" ${row.상태 === '예정' ? 'selected' : ''}>예정</option>
+                        <option value="완료" ${row.상태 === '완료' ? 'selected' : ''}>완료</option>
+                        <option value="보류" ${row.상태 === '보류' ? 'selected' : ''}>보류</option>
+                    </select>
+                </td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${본번}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${부번}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.면적 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 whitespace-pre-line">${row.기록사항 || '-'}</td>
+            </tr>
+            `;
+        }).join('');
 }
 
 function updateReportStatus(rowId, status) {
