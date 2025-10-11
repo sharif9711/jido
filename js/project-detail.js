@@ -32,6 +32,11 @@ function switchTab(tabName) {
                 if (tab === '지도') {
                     onMapTabActivated();
                 }
+                
+                // 보고서 탭 활성화 시 주소에서 우편번호 자동 수집
+                if (tab === '보고서') {
+                    fetchPostalCodesForReport();
+                }
             } else {
                 tabBtn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
                 tabBtn.classList.add('text-slate-600', 'hover:text-slate-900');
@@ -39,6 +44,40 @@ function switchTab(tabName) {
             }
         }
     });
+}
+
+// 보고서용 우편번호 자동 수집
+async function fetchPostalCodesForReport() {
+    if (!currentProject || !geocoder) return;
+    
+    const rowsWithAddress = currentProject.data.filter(row => 
+        row.주소 && row.주소.trim() !== '' && !row.우편번호
+    );
+    
+    if (rowsWithAddress.length === 0) return;
+    
+    // 백그라운드에서 우편번호 수집
+    for (let i = 0; i < Math.min(rowsWithAddress.length, 10); i++) {
+        const row = rowsWithAddress[i];
+        
+        geocoder.addressSearch(row.주소, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+                let zipCode = '';
+                if (result[0].road_address && result[0].road_address.zone_no) {
+                    zipCode = result[0].road_address.zone_no;
+                } else if (result[0].address && result[0].address.zip_code) {
+                    zipCode = result[0].address.zip_code;
+                }
+                
+                if (zipCode) {
+                    row.우편번호 = zipCode;
+                    renderReportTable();
+                }
+            }
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
 }
 
 function renderDataInputTable() {

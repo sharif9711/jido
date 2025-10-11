@@ -42,21 +42,25 @@ function updateMarkerList() {
     }
 
     content.innerHTML = markerListData.map((item, index) => {
-        const capsuleClass = item.isDuplicate 
-            ? 'bg-gradient-to-r from-red-500/80 to-red-600/80 backdrop-blur-md border-red-300/50' 
-            : 'bg-white/60 backdrop-blur-md border-slate-200/50';
-        
-        const textColor = item.isDuplicate ? 'text-white' : 'text-slate-800';
+        // 상태별 색상
+        let statusColor = 'bg-blue-100 text-blue-700'; // 예정
+        if (item.상태 === '완료') statusColor = 'bg-green-100 text-green-700';
+        if (item.상태 === '보류') statusColor = 'bg-amber-100 text-amber-700';
         
         return `
             <div onclick="focusOnMarker(${index})" 
                  class="p-4 border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 hover:scale-[1.02]">
                 <div class="flex items-start gap-3">
-                    <div class="${capsuleClass} ${textColor} px-4 py-2 rounded-full text-xs font-semibold border shadow-lg flex-shrink-0">
+                    <div class="bg-white/60 backdrop-blur-md border-slate-200/50 text-slate-800 px-4 py-2 rounded-full text-xs font-semibold border shadow-lg flex-shrink-0">
                         ${item.순번}. ${item.이름 || '이름없음'}
                     </div>
                     
                     <div class="flex-1 min-w-0">
+                        <div class="mb-1">
+                            <span class="inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColor}">
+                                ${item.상태}
+                            </span>
+                        </div>
                         <div class="text-sm text-slate-700 mb-1 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
@@ -90,23 +94,18 @@ function focusOnMarker(index) {
 }
 
 // 내 위치 표시 토글
+var gpsWatchId = null; // 위치 추적 ID
+
 function toggleMyLocation() {
     const btn = document.getElementById('toggleGpsBtn');
     
-    if (isGpsActive) {
-        if (myLocationMarker) {
-            myLocationMarker.setMap(null);
-            myLocationMarker = null;
-        }
-        isGpsActive = false;
-        myCurrentLocation = null;
-        btn.classList.remove('bg-green-600', 'text-white');
-        btn.classList.add('bg-white', 'text-slate-700');
-    } else {
+    // 상태 0: OFF → 상태 1: 내 위치 표시
+    if (!isGpsActive && !gpsWatchId) {
         if (navigator.geolocation) {
             btn.classList.add('bg-yellow-500', 'text-white');
-            btn.classList.remove('bg-white', 'text-slate-700');
+            btn.classList.remove('bg-white', 'text-slate-700', 'bg-green-600');
             btn.textContent = '🔡 검색중...';
+            showMapMessage('현재 위치를 검색하고 있습니다...', 'info');
             
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -124,54 +123,14 @@ function toggleMyLocation() {
                         position: myPosition,
                         content: `
                             <div style="position: relative; width: 40px; height: 40px;">
-                                <!-- 외부 펄스 효과 -->
-                                <div style="
-                                    position: absolute;
-                                    top: 50%;
-                                    left: 50%;
-                                    transform: translate(-50%, -50%);
-                                    width: 40px;
-                                    height: 40px;
-                                    background: rgba(66, 133, 244, 0.3);
-                                    border-radius: 50%;
-                                    animation: pulse 2s infinite;
-                                "></div>
-                                <!-- 중간 원 -->
-                                <div style="
-                                    position: absolute;
-                                    top: 50%;
-                                    left: 50%;
-                                    transform: translate(-50%, -50%);
-                                    width: 24px;
-                                    height: 24px;
-                                    background: rgba(66, 133, 244, 0.5);
-                                    border-radius: 50%;
-                                    border: 3px solid white;
-                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                                "></div>
-                                <!-- 중심점 -->
-                                <div style="
-                                    position: absolute;
-                                    top: 50%;
-                                    left: 50%;
-                                    transform: translate(-50%, -50%);
-                                    width: 12px;
-                                    height: 12px;
-                                    background: #4285F4;
-                                    border-radius: 50%;
-                                    border: 2px solid white;
-                                "></div>
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
                             </div>
                             <style>
                                 @keyframes pulse {
-                                    0% {
-                                        transform: translate(-50%, -50%) scale(1);
-                                        opacity: 1;
-                                    }
-                                    100% {
-                                        transform: translate(-50%, -50%) scale(2);
-                                        opacity: 0;
-                                    }
+                                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                                    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
                                 }
                             </style>
                         `,
@@ -188,6 +147,7 @@ function toggleMyLocation() {
                     btn.classList.remove('bg-yellow-500');
                     btn.classList.add('bg-green-600', 'text-white');
                     btn.textContent = '📍 GPS';
+                    showMapMessage('내 위치가 표시되었습니다', 'success');
                 },
                 function(error) {
                     alert('위치 정보를 가져올 수 없습니다: ' + error.message);
@@ -199,6 +159,72 @@ function toggleMyLocation() {
         } else {
             alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
         }
+    }
+    // 상태 1: 내 위치 표시 → 상태 2: 실시간 추적
+    else if (isGpsActive && !gpsWatchId) {
+        btn.classList.add('bg-blue-600', 'text-white');
+        btn.classList.remove('bg-green-600');
+        btn.textContent = '🎯 추적중';
+        showMapMessage('실시간 위치 추적을 시작합니다', 'info');
+        
+        gpsWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const myPosition = new kakao.maps.LatLng(lat, lng);
+                
+                if (myLocationMarker) {
+                    myLocationMarker.setMap(null);
+                }
+                
+                myLocationMarker = new kakao.maps.CustomOverlay({
+                    position: myPosition,
+                    content: `
+                        <div style="position: relative; width: 40px; height: 40px;">
+                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
+                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+                            <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
+                        </div>
+                        <style>
+                            @keyframes pulse {
+                                0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                                100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+                            }
+                        </style>
+                    `,
+                    map: kakaoMap,
+                    zIndex: 10
+                });
+                
+                kakaoMap.setCenter(myPosition);
+                myCurrentLocation = { lat: lat, lng: lng };
+            },
+            function(error) {
+                console.error('위치 추적 오류:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            }
+        );
+    }
+    // 상태 2: 실시간 추적 → 상태 0: OFF
+    else {
+        if (gpsWatchId) {
+            navigator.geolocation.clearWatch(gpsWatchId);
+            gpsWatchId = null;
+        }
+        if (myLocationMarker) {
+            myLocationMarker.setMap(null);
+            myLocationMarker = null;
+        }
+        isGpsActive = false;
+        myCurrentLocation = null;
+        btn.classList.remove('bg-green-600', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-white', 'text-slate-700');
+        btn.textContent = '📍 GPS';
+        showMapMessage('GPS가 꺼졌습니다', 'info');
     }
 }
 
