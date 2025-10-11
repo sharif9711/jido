@@ -391,15 +391,33 @@ function hideBottomInfoPanel() {
 }
 
 function openKakaoNavi(address, lat, lng) {
-    if (!lat || !lng) { 
-        alert('위치 정보가 없습니다.'); 
+    console.log('=== 카카오내비 실행 시도 ===');
+    console.log('address:', address);
+    console.log('lat:', lat, 'type:', typeof lat);
+    console.log('lng:', lng, 'type:', typeof lng);
+    
+    if (!lat || !lng || lat === 0 || lng === 0) { 
+        alert('위치 정보가 없습니다. lat=' + lat + ', lng=' + lng); 
         return; 
+    }
+    
+    // 숫자로 강제 변환
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    
+    console.log('변환된 좌표:', { latitude, longitude });
+    
+    if (isNaN(latitude) || isNaN(longitude)) {
+        alert('좌표 변환 실패: lat=' + lat + ', lng=' + lng);
+        return;
     }
     
     const name = address || '목적지';
     
-    // 카카오내비 앱 실행 (이전에 작동했던 방식)
-    const kakaoNaviUrl = `kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${lng}&y=${lat}&coord_type=wgs84`;
+    // 카카오내비 앱 실행
+    const kakaoNaviUrl = `kakaonavi://navigate?name=${encodeURIComponent(name)}&x=${longitude}&y=${latitude}&coord_type=wgs84`;
+    
+    console.log('카카오내비 URL:', kakaoNaviUrl);
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
@@ -410,13 +428,13 @@ function openKakaoNavi(address, lat, lng) {
         // 2초 후 앱이 설치되어 있지 않으면 웹 카카오맵으로 이동
         setTimeout(() => {
             if (!document.hidden) {
-                const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+                const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${latitude},${longitude}`;
                 window.location.href = webNaviUrl;
             }
         }, 2000);
     } else {
         // PC: 웹 카카오맵 길찾기
-        const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
+        const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${latitude},${longitude}`;
         window.open(webNaviUrl, '_blank');
     }
 }
