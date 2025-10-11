@@ -304,7 +304,7 @@ function showBottomInfoPanel(rowData, markerIndex) {
         const mIdx = markerInfo.index;
         const memos = data.메모 || [];
         
-        // 좌표 정보를 kakaoMarkers에서 직접 가져오기 (더 확실함)
+        // 좌표 정보를 kakaoMarkers에서 직접 가져오기
         let markerLat = 0;
         let markerLng = 0;
         
@@ -322,14 +322,9 @@ function showBottomInfoPanel(rowData, markerIndex) {
             markerLng = parseFloat(data.lng) || 0;
         }
         
-        console.log(`마커 ${mIdx} 좌표:`, { markerLat, markerLng, data }); // 디버깅용
-        
         const memosHtml = memos.length > 0 
             ? memos.map((memo, i) => `<div class="text-xs text-slate-600 mb-1"><span class="font-semibold">${i + 1}.</span> ${memo.내용} <span class="text-slate-400">(${memo.시간})</span></div>`).join('')
             : '<div class="text-xs text-slate-400">메모가 없습니다</div>';
-        
-        // 주소에서 따옴표 이스케이프 처리
-        const escapedAddress = (data.주소 || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
         return `<div class="bg-white rounded-lg p-6 ${idx > 0 ? 'border-t-2 border-slate-200' : ''}">
             <div class="mb-4 pr-8">
@@ -342,7 +337,7 @@ function showBottomInfoPanel(rowData, markerIndex) {
                     <div class="flex items-center gap-2">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         <span class="text-xs">${data.주소}</span>
-                        <button onclick="openKakaoNavi('${escapedAddress}', ${markerLat}, ${markerLng})" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors ${!markerLat || !markerLng ? 'opacity-50 cursor-not-allowed' : ''}" title="카카오내비로 안내" ${!markerLat || !markerLng ? 'disabled' : ''}>
+                        <button id="naviBtn-${mIdx}" data-address="${(data.주소 || '').replace(/"/g, '&quot;')}" data-lat="${markerLat}" data-lng="${markerLng}" class="ml-2 p-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors ${!markerLat || !markerLng ? 'opacity-50 cursor-not-allowed' : ''}" title="카카오내비로 안내" ${!markerLat || !markerLng ? 'disabled' : ''}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
@@ -378,6 +373,23 @@ function showBottomInfoPanel(rowData, markerIndex) {
     
     panel.style.display = 'block';
     panel.style.animation = 'slideUp 0.3s ease-out';
+    
+    // 이벤트 리스너 등록 (HTML 생성 후)
+    sameAddressMarkers.forEach((markerInfo) => {
+        const mIdx = markerInfo.index;
+        const naviBtn = document.getElementById(`naviBtn-${mIdx}`);
+        
+        if (naviBtn) {
+            naviBtn.addEventListener('click', function() {
+                const address = this.getAttribute('data-address');
+                const lat = parseFloat(this.getAttribute('data-lat'));
+                const lng = parseFloat(this.getAttribute('data-lng'));
+                
+                console.log('버튼 클릭 - 주소:', address, '좌표:', lat, lng);
+                openKakaoNavi(address, lat, lng);
+            });
+        }
+    });
 }
 
 function hideBottomInfoPanel() {
