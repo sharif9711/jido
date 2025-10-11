@@ -220,6 +220,7 @@ function renderReportTable() {
                 </td>
                 <td class="border border-slate-300 px-3 py-2 text-center">${row.법정동코드 || '-'}</td>
                 <td class="border border-slate-300 px-3 py-2 text-center">${row.pnu코드 || '-'}</td>
+                <td class="border border-slate-300 px-3 py-2 text-center">${row.대장구분 || '-'}</td>
                 <td class="border border-slate-300 px-3 py-2 text-center">${본번}</td>
                 <td class="border border-slate-300 px-3 py-2 text-center">${부번}</td>
                 <td class="border border-slate-300 px-3 py-2 text-center">${row.지목 || '-'}</td>
@@ -276,24 +277,30 @@ function downloadExcel() {
     }
 
     // CSV 형식으로 데이터 생성
-    const headers = ['순번', '이름', '연락처', '주소', '우편번호', '상태', '법정동코드', 'PNU코드', '본번', '부번', '지목', '면적', '기록사항'];
+    const headers = ['순번', '이름', '연락처', '주소', '우편번호', '상태', '법정동코드', 'PNU코드', '대장구분', '본번', '부번', '지목', '면적', '기록사항'];
     const csvContent = [
         headers.join(','),
-        ...filteredData.map(row => [
-            row.순번,
-            `"${row.이름 || ''}"`,
-            `"${row.연락처 || ''}"`,
-            `"${row.주소 || ''}"`,
-            `"${row.우편번호 || ''}"`,
-            row.상태,
-            `"${row.법정동코드 || ''}"`,
-            `"${row.pnu코드 || ''}"`,
-            `"${row.본번 || ''}"`,
-            `"${row.부번 || ''}"`,
-            `"${row.지목 || ''}"`,
-            `"${row.면적 || ''}"`,
-            `"${(row.기록사항 || '').replace(/\n/g, ' ')}"`
-        ].join(','))
+        ...filteredData.map(row => {
+            const 본번 = row.본번 ? String(row.본번).padStart(4, '0') : '0000';
+            const 부번 = row.부번 ? String(row.부번).padStart(4, '0') : '0000';
+            
+            return [
+                row.순번,
+                `"${row.이름 || ''}"`,
+                `"${row.연락처 || ''}"`,
+                `"${row.주소 || ''}"`,
+                `"${row.우편번호 || ''}"`,
+                row.상태,
+                `"${row.법정동코드 || ''}"`,
+                `"${row.pnu코드 || ''}"`,
+                `"${row.대장구분 || ''}"`,
+                본번,
+                부번,
+                `"${row.지목 || ''}"`,
+                `"${row.면적 || ''}"`,
+                `"${(row.기록사항 || '').replace(/\n/g, ' ')}"`
+            ].join(',');
+        })
     ].join('\n');
 
     // BOM 추가 (한글 깨짐 방지)
@@ -348,8 +355,10 @@ async function fetchLandInfoForReport() {
                 const detailInfo = await getAddressDetailInfo(row.주소);
                 
                 if (detailInfo) {
+                    if (detailInfo.zipCode) row.우편번호 = detailInfo.zipCode;
                     if (detailInfo.bjdCode) row.법정동코드 = detailInfo.bjdCode;
                     if (detailInfo.pnuCode) row.pnu코드 = detailInfo.pnuCode;
+                    if (detailInfo.대장구분) row.대장구분 = detailInfo.대장구분;
                     if (detailInfo.본번) row.본번 = detailInfo.본번;
                     if (detailInfo.부번) row.부번 = detailInfo.부번;
                     if (detailInfo.jimok) row.지목 = detailInfo.jimok;
@@ -358,7 +367,6 @@ async function fetchLandInfoForReport() {
                         row.lat = detailInfo.lat;
                         row.lng = detailInfo.lon;
                     }
-                    if (detailInfo.zipCode) row.우편번호 = detailInfo.zipCode;
                     
                     successCount++;
                 }
@@ -368,8 +376,28 @@ async function fetchLandInfoForReport() {
         }
         
         loadingMsg.textContent = `토지정보 수집 중... (${i + 1}/${rowsWithAddress.length})`;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
     }
+    
+    // 프로젝트 데이터 저장
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+    
+    // 보고서 테이블 업데이트
+    renderReportTable();
+    
+    // 로딩 메시지 제거
+    document.body.removeChild(loadingMsg);
+    
+    // 결과 메시지
+    if (successCount > 0) {
+        alert(`토지정보 수집 완료: ${successCount}건`);
+    } else {
+        alert('토지정보를 수집하지 못했습니다.');
+    }
+}
     
     // 프로젝트 데이터 저장
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);

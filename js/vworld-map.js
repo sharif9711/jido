@@ -241,48 +241,59 @@ function jsonpRequest(url, timeout = 20000) {
     });
 }
 
-// PNU코드에서 본번, 부번 추출 (4자리 형식)
-function extractBonBuFromPNU(pnuCode) {
+// PNU코드 분석 (대장구분, 본번, 부번)
+function analyzePNU(pnuCode) {
     if (!pnuCode || pnuCode.length < 19) {
-        return { 본번: '0000', 부번: '0000' };
+        return { 
+            대장구분: '', 
+            본번: '0000', 
+            부번: '0000' 
+        };
     }
     
     try {
-        // PNU 코드 형식: 법정동코드(10) + 산여부(1) + 본번(4) + 부번(4)
-        const bonStr = pnuCode.substr(11, 4); // 본번 4자리
-        const buStr = pnuCode.substr(15, 4);  // 부번 4자리
+        // PNU 코드 구조: 법정동코드(10) + 대장구분(1) + 본번(4) + 부번(4)
+        const daejangCode = pnuCode.substr(10, 1);
+        const bonStr = pnuCode.substr(11, 4);
+        const buStr = pnuCode.substr(15, 4);
+        
+        // 대장구분 변환
+        let 대장구분 = '';
+        switch(daejangCode) {
+            case '1': 대장구분 = '토지'; break;
+            case '2': 대장구분 = '임야'; break;
+            case '3': 대장구분 = '하천'; break;
+            case '4': 대장구분 = '간척'; break;
+            default: 대장구분 = '';
+        }
         
         return {
+            대장구분: 대장구분,
             본번: bonStr || '0000',
             부번: buStr || '0000'
         };
     } catch (error) {
-        console.error('PNU 파싱 오류:', error);
-        return { 본번: '0000', 부번: '0000' };
+        console.error('PNU 분석 오류:', error);
+        return { 
+            대장구분: '', 
+            본번: '0000', 
+            부번: '0000' 
+        };
     }
 }
 
-// 지목 코드를 한글로 변환
-function convertJimokCode(jimokCode) {
-    const jimokMap = {
-        '01': '전', '02': '답', '03': '과', '04': '목', 
-        '05': '임', '06': '광', '07': '염', '08': '대',
-        '09': '공', '10': '도', '11': '철', '12': '제',
-        '13': '학', '14': '주', '15': '창', '16': '수',
-        '17': '유', '18': '양', '19': '체', '20': '사',
-        '21': '묘', '22': '잡', '23': '구', '24': '유지',
-        '25': '종', '26': '사적지', '27': '공원', '28': '하천'
-    };
-    
-    return jimokMap[jimokCode] || jimokCode;
-}
-
-// 주소로 상세 정보 조회 (개선된 버전)
+// 주소로 상세 정보 조회 (가장 개선된 버전)
 async function getAddressDetailInfo(address) {
     try {
-        console.log('주소 조회 시작:', address);
+        console.log('=== 주소 조회 시작 ===');
+        console.log('주소:', address);
         
-        // 1단계: 카카오 API로 좌표 및 기본 정보 획득
+        let lon = null;
+        let lat = null;
+        let zipCode = '';
+        let bjdCode = '';
+        
+        // 1단계: 카카오 API로 기본 정보 획득
         if (typeof kakao !== 'undefined' && kakao.maps && kakao.maps.services) {
             const geocoder = new kakao.maps.services.Geocoder();
             
@@ -297,13 +308,12 @@ async function getAddressDetailInfo(address) {
             });
             
             if (kakaoResult) {
-                const lon = parseFloat(kakaoResult.x);
-                const lat = parseFloat(kakaoResult.y);
+                lon = parseFloat(kakaoResult.x);
+                lat = parseFloat(kakaoResult.y);
                 
-                console.log('카카오 좌표:', lon, lat);
+                console.log('카카오 좌표:', { lon, lat });
                 
-                // 우편번호
-                let zipCode = '';
+                // 우편번호 (카카오에서 가장 정확)
                 if (kakaoResult.road_address && kakaoResult.road_address.zone_no) {
                     zipCode = kakaoResult.road_address.zone_no;
                 } else if (kakaoResult.address && kakaoResult.address.zip_code) {
@@ -311,149 +321,149 @@ async function getAddressDetailInfo(address) {
                 }
                 
                 // 법정동코드
-                let bjdCode = '';
                 if (kakaoResult.address && kakaoResult.address.b_code) {
                     bjdCode = kakaoResult.address.b_code;
                 }
                 
-                // 2단계: VWorld API로 PNU 및 토지정보 조회
-                let pnuCode = '';
-                let jimok = '';
-                let area = '';
-                let 본번 = '0000';
-                let 부번 = '0000';
-                
-                // 시도 1: 연속지적도 API (가장 정확)
-                try {
-                    console.log('VWorld API 호출 시작...');
-                    const vworldUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LP_PA_CBND_BUBUN&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json&errorformat=json&output=json`;
-                    
-                    const vworldData = await jsonpRequest(vworldUrl, 15000);
-                    console.log('VWorld 응답:', vworldData);
-                    
-                    if (vworldData && vworldData.response && vworldData.response.status === 'OK') {
-                        const features = vworldData.response.result?.featureCollection?.features;
-                        if (features && features.length > 0) {
-                            const props = features[0].properties;
-                            console.log('토지 속성:', props);
-                            
-                            pnuCode = props.pnu || '';
-                            jimok = props.lndcgr_nm || props.jibun || '';
-                            
-                            // 면적 (㎡)
-                            if (props.lndpclr) {
-                                area = props.lndpclr + '㎡';
-                            } else if (props.ar) {
-                                area = props.ar + '㎡';
-                            }
-                            
-                            // PNU에서 본번, 부번 추출
-                            if (pnuCode) {
-                                const bonBu = extractBonBuFromPNU(pnuCode);
-                                본번 = bonBu.본번;
-                                부번 = bonBu.부번;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error('VWorld API 오류:', error);
-                }
-                
-                // 시도 2: 개별공시지가 API
-                if (!pnuCode) {
-                    try {
-                        const landPriceUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_SPJIJIGA&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json&errorformat=json&output=json`;
-                        
-                        const landPriceData = await jsonpRequest(landPriceUrl, 15000);
-                        
-                        if (landPriceData && landPriceData.response && landPriceData.response.status === 'OK') {
-                            const features = landPriceData.response.result?.featureCollection?.features;
-                            if (features && features.length > 0) {
-                                const props = features[0].properties;
-                                
-                                pnuCode = props.pnu || '';
-                                jimok = props.ladUseSittn || props.lndcgr || '';
-                                area = props.pblntfPclnd ? props.pblntfPclnd + '㎡' : '';
-                                
-                                if (pnuCode) {
-                                    const bonBu = extractBonBuFromPNU(pnuCode);
-                                    본번 = bonBu.본번;
-                                    부번 = bonBu.부번;
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.error('개별공시지가 API 오류:', error);
-                    }
-                }
-                
-                // 시도 3: 필지별 주소 API
-                if (!pnuCode) {
-                    try {
-                        const parcelUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_ADSIDO_INFO&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json&errorformat=json&output=json`;
-                        
-                        const parcelData = await jsonpRequest(parcelUrl, 15000);
-                        
-                        if (parcelData && parcelData.response && parcelData.response.status === 'OK') {
-                            const features = parcelData.response.result?.featureCollection?.features;
-                            if (features && features.length > 0) {
-                                const props = features[0].properties;
-                                pnuCode = props.pnu || '';
-                                
-                                if (pnuCode) {
-                                    const bonBu = extractBonBuFromPNU(pnuCode);
-                                    본번 = bonBu.본번;
-                                    부번 = bonBu.부번;
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.error('필지 주소 API 오류:', error);
-                    }
-                }
-                
-                console.log('최종 결과:', { pnuCode, 본번, 부번, jimok, area });
-                
-                return {
-                    lon: lon,
-                    lat: lat,
-                    zipCode: zipCode,
-                    bjdCode: bjdCode,
-                    pnuCode: pnuCode,
-                    본번: 본번,
-                    부번: 부번,
-                    jimok: jimok,
-                    area: area
-                };
+                console.log('우편번호:', zipCode);
+                console.log('법정동코드:', bjdCode);
             }
         }
         
-        console.log('카카오 API 사용 불가, VWorld만 사용');
-        
-        // 카카오 실패시 VWorld 주소검색만 사용
-        const url = `https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=${encodeURIComponent(address)}&refine=true&simple=false&format=json&type=road&key=${VWORLD_API_KEY}&output=json&errorformat=json`;
-        
-        const data = await jsonpRequest(url, 15000);
-        
-        if (data && data.response && data.response.status === 'OK' && data.response.result) {
-            const point = data.response.result.point;
-            const lon = parseFloat(point.x);
-            const lat = parseFloat(point.y);
+        // 좌표가 없으면 VWorld로 시도
+        if (!lon || !lat) {
+            const vworldAddrUrl = `https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=${encodeURIComponent(address)}&refine=true&simple=false&format=json&type=road&key=${VWORLD_API_KEY}&output=json&errorformat=json`;
             
-            let zipCode = data.response.result.zipcode || '';
+            const addrData = await jsonpRequest(vworldAddrUrl, 15000);
             
-            return {
-                lon: lon,
-                lat: lat,
-                zipCode: zipCode,
-                bjdCode: '',
-                pnuCode: '',
-                본번: '0000',
-                부번: '0000',
-                jimok: '',
-                area: ''
-            };
+            if (addrData && addrData.response && addrData.response.status === 'OK' && addrData.response.result) {
+                const point = addrData.response.result.point;
+                lon = parseFloat(point.x);
+                lat = parseFloat(point.y);
+                
+                if (addrData.response.result.zipcode) {
+                    zipCode = addrData.response.result.zipcode;
+                }
+                
+                console.log('VWorld 좌표:', { lon, lat });
+            }
         }
+        
+        if (!lon || !lat) {
+            console.log('좌표 획득 실패');
+            return null;
+        }
+        
+        // 2단계: VWorld WMS를 통한 필지 정보 조회
+        let pnuCode = '';
+        let jimok = '';
+        let area = '';
+        
+        // 시도 1: 연속지적도 (가장 정확)
+        try {
+            console.log('--- 연속지적도 API 호출 ---');
+            const lpUrl = `https://api.vworld.kr/req/wms?service=WMS&request=GetFeatureInfo&version=1.3.0&layers=lp_pa_cbnd_bubun&styles=lp_pa_cbnd_bubun&format=image/png&transparent=true&query_layers=lp_pa_cbnd_bubun&width=101&height=101&crs=EPSG:4326&bbox=${lat-0.0001},${lon-0.0001},${lat+0.0001},${lon+0.0001}&i=50&j=50&info_format=application/json&key=${VWORLD_API_KEY}`;
+            
+            const response = await fetch(lpUrl);
+            const lpData = await response.json();
+            
+            console.log('연속지적도 응답:', lpData);
+            
+            if (lpData && lpData.features && lpData.features.length > 0) {
+                const props = lpData.features[0].properties;
+                console.log('필지 속성:', props);
+                
+                pnuCode = props.pnu || '';
+                jimok = props.lndcgr_nm || props.jimok_text || '';
+                
+                // 면적 (여러 필드 시도)
+                if (props.lndpclr) {
+                    const areaNum = parseFloat(props.lndpclr);
+                    area = areaNum.toFixed(2) + '㎡';
+                } else if (props.ar) {
+                    const areaNum = parseFloat(props.ar);
+                    area = areaNum.toFixed(2) + '㎡';
+                }
+                
+                console.log('수집 정보:', { pnuCode, jimok, area });
+            }
+        } catch (error) {
+            console.error('연속지적도 오류:', error);
+        }
+        
+        // 시도 2: 토지특성정보 (지목, 면적 보완)
+        if (!jimok || !area) {
+            try {
+                console.log('--- 토지특성 API 호출 ---');
+                const landUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LT_C_SPJIJIGA&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json&errorformat=json&output=json`;
+                
+                const landData = await jsonpRequest(landUrl, 15000);
+                console.log('토지특성 응답:', landData);
+                
+                if (landData && landData.response && landData.response.status === 'OK') {
+                    const features = landData.response.result?.featureCollection?.features;
+                    if (features && features.length > 0) {
+                        const props = features[0].properties;
+                        
+                        if (!pnuCode) pnuCode = props.pnu || '';
+                        if (!jimok) jimok = props.ladUseSittn || props.lndcgr || '';
+                        if (!area && props.pblntfPclnd) {
+                            const areaNum = parseFloat(props.pblntfPclnd);
+                            area = areaNum.toFixed(2) + '㎡';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('토지특성 오류:', error);
+            }
+        }
+        
+        // 시도 3: 지적도 (PNU 보완)
+        if (!pnuCode) {
+            try {
+                console.log('--- 지적도 API 호출 ---');
+                const cadastralUrl = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LP_PA_CBND_BUBUN&key=${VWORLD_API_KEY}&domain=&geomFilter=POINT(${lon} ${lat})&geometry=false&size=1&format=json&errorformat=json&output=json`;
+                
+                const cadastralData = await jsonpRequest(cadastralUrl, 15000);
+                console.log('지적도 응답:', cadastralData);
+                
+                if (cadastralData && cadastralData.response && cadastralData.response.status === 'OK') {
+                    const features = cadastralData.response.result?.featureCollection?.features;
+                    if (features && features.length > 0) {
+                        const props = features[0].properties;
+                        if (!pnuCode) pnuCode = props.pnu || '';
+                        if (!jimok) jimok = props.lndcgr_nm || '';
+                        if (!area && props.lndpclr) {
+                            const areaNum = parseFloat(props.lndpclr);
+                            area = areaNum.toFixed(2) + '㎡';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('지적도 오류:', error);
+            }
+        }
+        
+        // PNU 분석 (대장구분, 본번, 부번)
+        const pnuInfo = analyzePNU(pnuCode);
+        
+        console.log('=== 최종 결과 ===');
+        const result = {
+            lon: lon,
+            lat: lat,
+            zipCode: zipCode,
+            bjdCode: bjdCode,
+            pnuCode: pnuCode,
+            대장구분: pnuInfo.대장구분,
+            본번: pnuInfo.본번,
+            부번: pnuInfo.부번,
+            jimok: jimok,
+            area: area
+        };
+        console.log(result);
+        
+        return result;
+        
     } catch (error) {
         console.error('주소 상세 정보 조회 오류:', error);
     }
