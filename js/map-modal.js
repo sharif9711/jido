@@ -18,7 +18,7 @@ function showMapView() {
         
         // 지도 초기화 후 자동으로 마커 표시
         setTimeout(() => {
-            if (currentProject && currentProject.data) {
+            if (currentProject && currentProject.data && typeof displayProjectOnKakaoMap === 'function') {
                 console.log('Auto-displaying markers on map...');
                 displayProjectOnKakaoMap(currentProject.data);
             }

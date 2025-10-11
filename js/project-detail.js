@@ -48,7 +48,22 @@ function switchTab(tabName) {
 
 // 보고서용 우편번호 자동 수집
 async function fetchPostalCodesForReport() {
-    if (!currentProject || !geocoder) return;
+    if (!currentProject) return;
+    
+    // geocoder가 없으면 초기화
+    if (typeof kakao === 'undefined' || typeof kakao.maps === 'undefined') {
+        console.log('Kakao Maps API not loaded yet');
+        return;
+    }
+    
+    if (!geocoder) {
+        try {
+            geocoder = new kakao.maps.services.Geocoder();
+        } catch (error) {
+            console.error('Failed to initialize geocoder:', error);
+            return;
+        }
+    }
     
     const rowsWithAddress = currentProject.data.filter(row => 
         row.주소 && row.주소.trim() !== '' && !row.우편번호
@@ -60,21 +75,27 @@ async function fetchPostalCodesForReport() {
     for (let i = 0; i < Math.min(rowsWithAddress.length, 10); i++) {
         const row = rowsWithAddress[i];
         
-        geocoder.addressSearch(row.주소, function(result, status) {
-            if (status === kakao.maps.services.Status.OK) {
-                let zipCode = '';
-                if (result[0].road_address && result[0].road_address.zone_no) {
-                    zipCode = result[0].road_address.zone_no;
-                } else if (result[0].address && result[0].address.zip_code) {
-                    zipCode = result[0].address.zip_code;
+        try {
+            geocoder.addressSearch(row.주소, function(result, status) {
+                if (status === kakao.maps.services.Status.OK) {
+                    let zipCode = '';
+                    if (result[0].road_address && result[0].road_address.zone_no) {
+                        zipCode = result[0].road_address.zone_no;
+                    } else if (result[0].address && result[0].address.zip_code) {
+                        zipCode = result[0].address.zip_code;
+                    }
+                    
+                    if (zipCode) {
+                        row.우편번호 = zipCode;
+                        if (typeof renderReportTable === 'function') {
+                            renderReportTable();
+                        }
+                    }
                 }
-                
-                if (zipCode) {
-                    row.우편번호 = zipCode;
-                    renderReportTable();
-                }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Geocoding error:', error);
+        }
         
         await new Promise(resolve => setTimeout(resolve, 200));
     }
