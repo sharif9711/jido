@@ -377,30 +377,42 @@ function openKakaoNavi(address, lat, lng) {
         return; 
     }
     
+    console.log('카카오내비 실행:', { address, lat, lng }); // 디버깅용
+    
     // 목적지 이름 설정
     const destination = address || '목적지';
     
-    // 카카오내비 앱 스킴 (올바른 파라미터 형식)
-    const naviUrl = `kakaonavi://navigate?ep=${lng},${lat}&by=KATEC`;
+    // 카카오내비 최신 URI 스킴 (name 파라미터 필수)
+    const naviUrl = `kakaonavi://navigate?ep=${lng},${lat}&by=CAR`;
     
     // 웹 카카오맵 길찾기 URL
     const webNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(destination)},${lat},${lng}`;
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     
     if (isMobile) {
-        // 모바일: 먼저 카카오내비 앱 시도
-        const appLink = document.createElement('a');
-        appLink.href = naviUrl;
-        appLink.style.display = 'none';
-        document.body.appendChild(appLink);
-        appLink.click();
-        document.body.removeChild(appLink);
-        
-        // 1초 후에도 페이지가 그대로면 웹 버전 열기
-        setTimeout(() => {
-            window.open(webNaviUrl, '_blank');
-        }, 1000);
+        if (isIOS) {
+            // iOS: Universal Link 방식 시도 후 앱 스킴
+            window.location.href = naviUrl;
+            
+            // 2초 후 앱이 열리지 않으면 웹 버전으로
+            setTimeout(() => {
+                if (!document.hidden) {
+                    window.location.href = webNaviUrl;
+                }
+            }, 2000);
+        } else {
+            // Android: intent 방식
+            const intentUrl = `intent://navigate?ep=${lng},${lat}&by=CAR#Intent;scheme=kakaonavi;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.locnall.KimGiSa;end`;
+            
+            window.location.href = intentUrl;
+            
+            // 1.5초 후 실패시 웹 버전
+            setTimeout(() => {
+                window.location.href = webNaviUrl;
+            }, 1500);
+        }
     } else {
         // PC: 웹 버전 바로 열기
         window.open(webNaviUrl, '_blank');
