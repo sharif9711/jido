@@ -6,7 +6,7 @@ let selectedProjectId = null;
 // 500행 초기 데이터 생성
 function createInitialData() {
     const initialData = [];
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 1500; i++) {
         initialData.push({
             id: Date.now() + '_' + i,
             순번: i + 1,

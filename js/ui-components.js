@@ -111,7 +111,7 @@ function getProjectDetailHTML() {
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-900">자료 입력</h2>
-                            <span class="text-sm text-slate-600">총 500행</span>
+                            <span class="text-sm text-slate-600">총 1500행</span>
                         </div>
                         <div class="overflow-auto" style="max-height: 600px;">
                             <table class="w-full border-collapse">

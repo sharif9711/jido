@@ -563,7 +563,7 @@ async function drawRoadRoute(start, waypoints) {
     });
 }
 
-// VWorld 경로 그리기
+// VWorld 경로 그리기 (OSRM 사용)
 async function drawVWorldRoute(start, waypoints) {
     const allPoints = [start, ...waypoints];
     const pathCoords = [];
@@ -571,11 +571,48 @@ async function drawVWorldRoute(start, waypoints) {
     // 시작점 추가
     pathCoords.push(ol.proj.fromLonLat([start.lng, start.lat]));
     
-    // 각 구간 연결
+    // 각 구간을 OSRM으로 경로 찾기
     for (let i = 0; i < allPoints.length - 1; i++) {
+        const origin = allPoints[i];
         const destination = allPoints[i + 1];
-        pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+        
+        try {
+            // OSRM API 호출 (무료 공개 서버)
+            const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+            
+            const response = await fetch(url);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.routes && data.routes[0] && data.routes[0].geometry) {
+                    const coordinates = data.routes[0].geometry.coordinates;
+                    
+                    // GeoJSON 좌표를 OpenLayers 좌표로 변환
+                    coordinates.forEach(coord => {
+                        pathCoords.push(ol.proj.fromLonLat(coord));
+                    });
+                    
+                    console.log(`OSRM route segment ${i + 1}: ${coordinates.length} points`);
+                } else {
+                    // OSRM 실패 시 직선으로
+                    pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+                }
+            } else {
+                // API 실패 시 직선으로
+                pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+            }
+        } catch (error) {
+            console.error('OSRM routing error:', error);
+            // 오류 시 직선으로
+            pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+        }
+        
+        // API 요청 간격 (OSRM 공개 서버 제한)
+        await new Promise(resolve => setTimeout(resolve, 200));
     }
+    
+    console.log('Total route points:', pathCoords.length);
     
     // 경로 선 생성
     const routeLine = new ol.geom.LineString(pathCoords);
@@ -587,7 +624,9 @@ async function drawVWorldRoute(start, waypoints) {
     const routeStyle = new ol.style.Style({
         stroke: new ol.style.Stroke({
             color: '#4A90E2',
-            width: 6
+            width: 6,
+            lineCap: 'round',
+            lineJoin: 'round'
         })
     });
     
@@ -635,19 +674,7 @@ async function drawVWorldRoute(start, waypoints) {
         
         vworldMap.addOverlay(markerOverlay);
         vworldRouteMarkers.push(markerOverlay);
-        });
-    }
-
-// 거리 계산
-function getDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    });
 }
 
 // 지도 메시지 표시

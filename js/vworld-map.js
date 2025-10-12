@@ -194,23 +194,35 @@ function createVWorldMarker(coordinate, 순번, status) {
     return markerElement;
 }
 
-// 마커 추가
+// 마커 추가 (디버깅 강화)
 function addVWorldMarker(coordinate, label, status, rowData, isDuplicate, markerIndex) {
-    if (!vworldMap) return null;
+    if (!vworldMap) {
+        console.error('VWorld map not initialized');
+        return null;
+    }
+
+    console.log('Adding VWorld marker:', { coordinate, label, status });
 
     const markerElement = createVWorldMarker(coordinate, rowData.순번, status);
     
+    const position = ol.proj.fromLonLat([coordinate.lon, coordinate.lat]);
+    console.log('Marker position:', position);
+    
     const marker = new ol.Overlay({
-        position: ol.proj.fromLonLat([coordinate.lon, coordinate.lat]),
+        position: position,
         element: markerElement,
         positioning: 'bottom-center',
         stopEvent: false
     });
 
     vworldMap.addOverlay(marker);
+    console.log('Marker added to map');
 
     // 클릭 이벤트
-    markerElement.onclick = () => showBottomInfoPanelVWorld(rowData, markerIndex);
+    markerElement.onclick = () => {
+        console.log('Marker clicked:', rowData);
+        showBottomInfoPanelVWorld(rowData, markerIndex);
+    };
 
     // 이름 라벨
     const labelBg = isDuplicate ? '#ef4444' : '#ffffff';
@@ -233,10 +245,10 @@ function addVWorldMarker(coordinate, label, status, rowData, isDuplicate, marker
     `;
 
     const labelOverlay = new ol.Overlay({
-        position: ol.proj.fromLonLat([coordinate.lon, coordinate.lat]),
+        position: position,
         element: labelElement,
         positioning: 'bottom-center',
-        offset: [0, -65],
+        offset: [0, -75],
         stopEvent: false
     });
 
@@ -245,6 +257,9 @@ function addVWorldMarker(coordinate, label, status, rowData, isDuplicate, marker
     }
 
     vworldMarkers.push({ marker, labelOverlay, rowData });
+    
+    console.log('Total VWorld markers:', vworldMarkers.length);
+    
     return marker;
 }
 
@@ -301,21 +316,57 @@ async function displayProjectOnVWorldMap(projectData) {
         const row = addressesWithData[i];
         
         let coord = null;
+        
+        // 1순위: VWorld 전용 좌표가 있으면 사용
         if (row.vworld_lon && row.vworld_lat) {
             coord = {
                 lon: row.vworld_lon,
                 lat: row.vworld_lat,
                 address: row.주소
             };
-        } else {
+        }
+        // 2순위: 카카오맵 좌표가 있으면 재사용 (WGS84 좌표계 동일)
+        else if (row.lat && row.lng) {
+            coord = {
+                lon: row.lng,
+                lat: row.lat,
+                address: row.주소
+            };
+        }
+        // 3순위: 새로 좌표 검색
+        else {
             coord = await geocodeAddressVWorld(row.주소);
         }
         
+        // ========== 여기에 디버깅 코드 추가 ==========
         if (coord) {
+            console.log(`✅ Address ${i + 1}/${addressesWithData.length}: ${row.주소}`, coord);
+            
+            // 좌표 유효성 검사
+            if (isNaN(coord.lon) || isNaN(coord.lat)) {
+                console.error('❌ Invalid coordinates:', coord);
+                continue; // 이 주소는 건너뛰기
+            }
+            
+            // 좌표 범위 검사 (한국 영역)
+            if (coord.lon < 124 || coord.lon > 132 || coord.lat < 33 || coord.lat > 43) {
+                console.warn('⚠️ Coordinates outside Korea:', coord);
+            }
+            
+            // 원본 데이터에 좌표 저장
+            // ========================================
+            
             const originalRow = currentProject.data.find(r => r.id === row.id);
             if (originalRow) {
+                // VWorld 전용 좌표 저장 (선택사항)
                 originalRow.vworld_lon = parseFloat(coord.lon);
                 originalRow.vworld_lat = parseFloat(coord.lat);
+                
+                // 카카오맵 좌표도 저장 (호환성)
+                if (!originalRow.lat || !originalRow.lng) {
+                    originalRow.lat = parseFloat(coord.lat);
+                    originalRow.lng = parseFloat(coord.lon);
+                }
             }
             
             row.vworld_lon = parseFloat(coord.lon);
@@ -327,8 +378,10 @@ async function displayProjectOnVWorldMap(projectData) {
                 ...row,
                 lon: parseFloat(coord.lon),
                 lat: parseFloat(coord.lat),
-                lng: parseFloat(coord.lon) // 호환성을 위해 lng도 추가
+                lng: parseFloat(coord.lon)
             };
+            
+            console.log('📍 Creating marker for:', rowDataWithCoords.이름 || rowDataWithCoords.주소);
             
             const marker = addVWorldMarker(coord, row.이름 || `#${row.순번}`, row.상태, rowDataWithCoords, isDuplicate, vworldMarkers.length);
             
@@ -346,17 +399,30 @@ async function displayProjectOnVWorldMap(projectData) {
                 });
                 
                 successCount++;
+                console.log(`✓ Marker added successfully (${successCount}/${addressesWithData.length})`);
+            } else {
+                console.error('❌ Failed to create marker for:', row.주소);
             }
+        } else {
+            console.error(`❌ No coordinates found for address ${i + 1}: ${row.주소}`);
         }
 
         if (loadingStatus) {
             loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
         }
         
-        if (!row.vworld_lon || !row.vworld_lat) {
+        // 이미 좌표가 있으면 딜레이 없음
+        if (!row.vworld_lon && !row.vworld_lat && !row.lat && !row.lng) {
             await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
+    
+    console.log('=== Final Results ===');
+    console.log('Total addresses:', addressesWithData.length);
+    console.log('Successfully added markers:', successCount);
+    console.log('Failed markers:', addressesWithData.length - successCount);
+    console.log('VWorld markers array length:', vworldMarkers.length);
+    console.log('Coordinates for map bounds:', coordinates.length);
     
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);
     if (projectIndex !== -1) {
@@ -368,6 +434,7 @@ async function displayProjectOnVWorldMap(projectData) {
     }
 
     if (coordinates.length > 0) {
+        console.log('Setting map bounds with', coordinates.length, 'coordinates');
         const extent = ol.extent.boundingExtent(
             coordinates.map(coord => ol.proj.fromLonLat(coord))
         );
@@ -376,6 +443,8 @@ async function displayProjectOnVWorldMap(projectData) {
             maxZoom: 16,
             duration: 1000
         });
+    } else {
+        console.warn('⚠️ No coordinates to display on map!');
     }
 
     if (loadingStatus) {
@@ -1013,4 +1082,97 @@ async function getAddressDetailInfo(address) {
     }
     
     return null;
+}
+
+// 지번 외곽선 레이어 추가
+var parcelBoundaryLayer = null;
+
+// 지번 외곽선 표시
+function showParcelBoundaries() {
+    if (!vworldMap) return;
+    
+    // 이미 레이어가 있으면 제거
+    if (parcelBoundaryLayer) {
+        vworldMap.removeLayer(parcelBoundaryLayer);
+    }
+    
+    // VWorld 연속지적도 WMS 레이어
+    parcelBoundaryLayer = new ol.layer.Tile({
+        source: new ol.source.TileWMS({
+            url: 'https://api.vworld.kr/req/wms',
+            params: {
+                'SERVICE': 'WMS',
+                'VERSION': '1.3.0',
+                'REQUEST': 'GetMap',
+                'LAYERS': 'lp_pa_cbnd_bubun',
+                'STYLES': '',
+                'FORMAT': 'image/png',
+                'TRANSPARENT': true,
+                'KEY': VWORLD_API_KEY,
+                'DOMAIN': window.location.origin
+            },
+            serverType: 'geoserver',
+            crossOrigin: 'anonymous'
+        }),
+        opacity: 0.6,
+        zIndex: 1
+    });
+    
+    vworldMap.addLayer(parcelBoundaryLayer);
+    console.log('Parcel boundary layer added');
+}
+
+// initVWorldMap 함수 수정 (지번 외곽선 자동 표시)
+function initVWorldMap() {
+    const mapContainer = document.getElementById('vworldMap');
+    if (!mapContainer) {
+        console.error('vworldMap element not found');
+        return;
+    }
+
+    if (vworldMap) {
+        vworldMap.setTarget(null);
+        vworldMap = null;
+    }
+
+    try {
+        vworldMap = new ol.Map({
+            target: 'vworldMap',
+            layers: [
+                // 위성 영상
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg'
+                    })
+                }),
+                // 라벨(지명) 레이어
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png'
+                    }),
+                    opacity: 0.8
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([126.978, 37.5665]),
+                zoom: 12
+            }),
+            controls: [
+                new ol.control.Zoom(),
+                new ol.control.Attribution(),
+                new ol.control.FullScreen(),
+                new ol.control.ScaleLine()
+            ]
+        });
+
+        console.log('VWorld map initialized successfully');
+        
+        // 지번 외곽선 표시
+        setTimeout(() => {
+            showParcelBoundaries();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Failed to initialize VWorld map:', error);
+    }
 }
