@@ -1175,27 +1175,32 @@ function showParcelBoundaries() {
     }
     
     try {
-        // VWorld 연속지적도 WMS 레이어 (수정된 파라미터)
+        // VWorld 연속지적도 WMS 레이어 (올바른 파라미터)
         parcelBoundaryLayer = new ol.layer.Tile({
             source: new ol.source.TileWMS({
                 url: 'https://api.vworld.kr/req/wms',
                 params: {
                     'LAYERS': 'lp_pa_cbnd_bubun',
                     'TILED': true,
-                    'VERSION': '1.3.0',
+                    'VERSION': '1.1.1',
                     'FORMAT': 'image/png',
                     'TRANSPARENT': true,
-                    'CRS': 'EPSG:3857',
-                    'KEY': VWORLD_API_KEY
+                    'SRS': 'EPSG:900913',
+                    'KEY': VWORLD_API_KEY,
+                    'DOMAIN': window.location.hostname || 'localhost'
                 },
-                serverType: 'geoserver'
+                serverType: 'geoserver',
+                crossOrigin: 'anonymous'
             }),
-            opacity: 0.7,
-            zIndex: 1
+            opacity: 0.8,
+            zIndex: 5,
+            visible: true
         });
         
         vworldMap.addLayer(parcelBoundaryLayer);
-        console.log('✓ Parcel boundary layer added successfully');
+        console.log('✔ Parcel boundary layer added successfully');
+        console.log('Layer visible:', parcelBoundaryLayer.getVisible());
+        console.log('Layer opacity:', parcelBoundaryLayer.getOpacity());
     } catch (error) {
         console.error('Failed to add parcel boundary layer:', error);
     }
