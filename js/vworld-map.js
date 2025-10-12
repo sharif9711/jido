@@ -421,9 +421,8 @@ async function displayProjectOnVWorldMap(projectData) {
         }
         
         // 이미 좌표가 있으면 딜레이 없음
-        if (!row.vworld_lon && !row.vworld_lat && !row.lat && !row.lng) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-        }
+       // API 요청 간격 제거 (이미 좌표가 저장되어 있으므로)
+        // await new Promise(resolve => setTimeout(resolve, 300));
     }
     
     console.log('=== Final Results ===');
@@ -453,10 +452,11 @@ async function displayProjectOnVWorldMap(projectData) {
             duration: 1000
         });
         
-        // 지번 외곽선 자동 표시
+        // 지번 외곽선 자동 표시 (시간 증가)
         setTimeout(() => {
+            console.log('Re-displaying parcel boundaries after marker load...');
             showParcelBoundaries();
-        }, 500);
+        }, 1500);
     } else {
         console.warn('⚠️ No coordinates to display on map!');
     }
@@ -1166,7 +1166,7 @@ var parcelBoundaryLayer = null;
 // 지번 외곽선 레이어 추가
 var parcelBoundaryLayer = null;
 
-// 지번 외곽선 표시 (CORS 문제 해결)
+// 지번 외곽선 표시 (여러 방법 시도)
 function showParcelBoundaries() {
     if (!vworldMap) {
         console.error('VWorld map not initialized for parcel boundaries');
@@ -1180,21 +1180,75 @@ function showParcelBoundaries() {
     }
     
     try {
-        // VWorld 연속지적도 XYZ 타일 방식으로 변경 (CORS 우회)
+        // 방법 1: VWorld Hybrid 레이어 사용 (지적도 포함)
         parcelBoundaryLayer = new ol.layer.Tile({
             source: new ol.source.XYZ({
-                url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/LP_PA_CBND_BUBUN/{z}/{y}/{x}.png',
+                url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/lp_pa_cbnd_bubun/{z}/{y}/{x}.png',
                 crossOrigin: 'anonymous'
             }),
-            opacity: 0.6,
-            zIndex: 5,
+            opacity: 0.7,
+            zIndex: 10,
             visible: true
         });
         
         vworldMap.addLayer(parcelBoundaryLayer);
-        console.log('✔ Parcel boundary layer added successfully (XYZ method)');
+        console.log('✔ Parcel boundary layer added (Method 1: lp_pa_cbnd_bubun)');
+        
+        // 레이어 로드 이벤트 확인
+        parcelBoundaryLayer.getSource().on('tileloaderror', function(event) {
+            console.error('❌ Tile load error:', event);
+            
+            // 방법 1 실패 시 방법 2 시도
+            if (parcelBoundaryLayer) {
+                vworldMap.removeLayer(parcelBoundaryLayer);
+            }
+            
+            console.log('Trying alternative method (Method 2: WMS)...');
+            
+            // 방법 2: WMS 방식
+            parcelBoundaryLayer = new ol.layer.Image({
+                source: new ol.source.ImageWMS({
+                    url: 'https://api.vworld.kr/req/wms',
+                    params: {
+                        'LAYERS': 'lt_c_adsido_info,lt_c_adsigg_info,lp_pa_cbnd_bubun',
+                        'VERSION': '1.3.0',
+                        'FORMAT': 'image/png',
+                        'TRANSPARENT': true,
+                        'CRS': 'EPSG:3857',
+                        'KEY': VWORLD_API_KEY
+                    },
+                    serverType: 'geoserver',
+                    crossOrigin: 'anonymous'
+                }),
+                opacity: 0.7,
+                zIndex: 10,
+                visible: true
+            });
+            
+            vworldMap.addLayer(parcelBoundaryLayer);
+            console.log('✔ Parcel boundary layer added (Method 2: WMS)');
+        });
+        
     } catch (error) {
         console.error('Failed to add parcel boundary layer:', error);
+        
+        // 방법 3: 지적편집도 레이어 (최후의 수단)
+        try {
+            parcelBoundaryLayer = new ol.layer.Tile({
+                source: new ol.source.XYZ({
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/CadastralMap/{z}/{y}/{x}.png',
+                    crossOrigin: 'anonymous'
+                }),
+                opacity: 0.6,
+                zIndex: 10,
+                visible: true
+            });
+            
+            vworldMap.addLayer(parcelBoundaryLayer);
+            console.log('✔ Parcel boundary layer added (Method 3: CadastralMap)');
+        } catch (err) {
+            console.error('All methods failed:', err);
+        }
     }
 }
 
@@ -1243,11 +1297,18 @@ function initVWorldMap() {
 
         console.log('VWorld map initialized successfully');
 
-// 지도 로드 완료 후 지번 외곽선 표시
-vworldMap.once('rendercomplete', function() {
-    console.log('VWorld map render complete, adding parcel boundaries...');
-    showParcelBoundaries();
-});
+// 지도 초기화 직후 지번 외곽선 즉시 표시
+        console.log('VWorld map initialized, adding parcel boundaries...');
+        setTimeout(() => {
+            showParcelBoundaries();
+        }, 1000);
+        
+        // 지도 이동/줌 시에도 지번 외곽선 유지
+        vworldMap.on('moveend', function() {
+            if (parcelBoundaryLayer && !parcelBoundaryLayer.getVisible()) {
+                parcelBoundaryLayer.setVisible(true);
+            }
+        });
         
     } catch (error) {
         console.error('Failed to initialize VWorld map:', error);
