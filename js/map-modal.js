@@ -53,35 +53,35 @@ function showMapView() {
                 setTimeout(() => {
                     initVWorldMap();
                     
-                    // 지도 초기화 후 마커 표시
+                    // 지도 초기화 후 마커 표시 (시간 증가)
                     setTimeout(() => {
                         if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
                             console.log('Auto-displaying markers on VWorld map...');
                             displayProjectOnVWorldMap(currentProject.data);
                         }
-                    }, 1500);
-                }, 300);
+                    }, 2000);
+                }, 500);
             } else {
                 document.getElementById('vworldMap').style.display = 'block';
                 
                 if (!vworldMap) {
                     initVWorldMap();
                     
-                    // 지도 초기화 후 마커 표시
+                    // 지도 초기화 후 마커 표시 (시간 증가)
                     setTimeout(() => {
                         if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
                             console.log('Auto-displaying markers on VWorld map...');
                             displayProjectOnVWorldMap(currentProject.data);
                         }
-                    }, 1500);
+                    }, 2000);
                 } else {
-                    // 이미 지도가 있으면 바로 마커 표시
+                    // 이미 지도가 있으면 즉시 마커 표시
                     setTimeout(() => {
                         if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
                             console.log('Displaying markers on existing VWorld map...');
                             displayProjectOnVWorldMap(currentProject.data);
                         }
-                    }, 300);
+                    }, 500);
                 }
             }
         }

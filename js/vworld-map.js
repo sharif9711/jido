@@ -452,6 +452,11 @@ async function displayProjectOnVWorldMap(projectData) {
             maxZoom: 16,
             duration: 1000
         });
+        
+        // 지번 외곽선 자동 표시
+        setTimeout(() => {
+            showParcelBoundaries();
+        }, 500);
     } else {
         console.warn('⚠️ No coordinates to display on map!');
     }
@@ -1161,7 +1166,7 @@ var parcelBoundaryLayer = null;
 // 지번 외곽선 레이어 추가
 var parcelBoundaryLayer = null;
 
-// 지번 외곽선 표시 (개선된 버전)
+// 지번 외곽선 표시 (CORS 문제 해결)
 function showParcelBoundaries() {
     if (!vworldMap) {
         console.error('VWorld map not initialized for parcel boundaries');
@@ -1175,32 +1180,19 @@ function showParcelBoundaries() {
     }
     
     try {
-        // VWorld 연속지적도 WMS 레이어 (올바른 파라미터)
+        // VWorld 연속지적도 XYZ 타일 방식으로 변경 (CORS 우회)
         parcelBoundaryLayer = new ol.layer.Tile({
-            source: new ol.source.TileWMS({
-                url: 'https://api.vworld.kr/req/wms',
-                params: {
-                    'LAYERS': 'lp_pa_cbnd_bubun',
-                    'TILED': true,
-                    'VERSION': '1.1.1',
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:900913',
-                    'KEY': VWORLD_API_KEY,
-                    'DOMAIN': window.location.hostname || 'localhost'
-                },
-                serverType: 'geoserver',
+            source: new ol.source.XYZ({
+                url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/LP_PA_CBND_BUBUN/{z}/{y}/{x}.png',
                 crossOrigin: 'anonymous'
             }),
-            opacity: 0.8,
+            opacity: 0.6,
             zIndex: 5,
             visible: true
         });
         
         vworldMap.addLayer(parcelBoundaryLayer);
-        console.log('✔ Parcel boundary layer added successfully');
-        console.log('Layer visible:', parcelBoundaryLayer.getVisible());
-        console.log('Layer opacity:', parcelBoundaryLayer.getOpacity());
+        console.log('✔ Parcel boundary layer added successfully (XYZ method)');
     } catch (error) {
         console.error('Failed to add parcel boundary layer:', error);
     }
