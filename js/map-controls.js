@@ -359,6 +359,12 @@ function checkDuplicateAddresses(addresses) {
 // 최적 경로 계산 (ON/OFF 토글)
 async function calculateOptimalRoute() {
     const btn = document.getElementById('optimalRouteBtn');
+    
+    if (!currentProject) {
+        showMapMessage('프로젝트를 먼저 선택해주세요.', 'warning');
+        return;
+    }
+    
     const mapType = currentProject.mapType || 'kakao';
     
     // 이미 경로가 표시되어 있으면 제거 (OFF)
@@ -375,11 +381,15 @@ async function calculateOptimalRoute() {
                 vworldMap.removeLayer(vworldRouteLayer);
                 vworldRouteLayer = null;
             }
-            vworldRouteMarkers.forEach(marker => vworldMap.removeOverlay(marker));
+            if (vworldRouteMarkers && vworldRouteMarkers.length > 0) {
+                vworldRouteMarkers.forEach(marker => vworldMap.removeOverlay(marker));
+            }
         }
         
         routeMarkers = [];
-        vworldRouteMarkers = [];
+        if (typeof vworldRouteMarkers !== 'undefined') {
+            vworldRouteMarkers = [];
+        }
         isRouteActive = false;
         
         btn.classList.remove('bg-purple-600', 'text-white');
@@ -452,18 +462,44 @@ async function calculateOptimalRoute() {
     }
     
     // 경로 그리기 (지도 유형별)
-    if (mapType === 'kakao') {
-        await drawRoadRoute(myCurrentLocation, routeOrder);
-    } else if (mapType === 'vworld') {
-        await drawVWorldRoute(myCurrentLocation, routeOrder);
+    try {
+        if (mapType === 'kakao') {
+            if (typeof drawRoadRoute === 'function') {
+                await drawRoadRoute(myCurrentLocation, routeOrder);
+            } else {
+                console.error('drawRoadRoute function not found');
+                showMapMessage('경로 그리기 함수를 찾을 수 없습니다.', 'error');
+                btn.classList.remove('bg-yellow-500');
+                btn.classList.add('bg-white', 'text-slate-700');
+                btn.textContent = '🗺️ 최적경로';
+                return;
+            }
+        } else if (mapType === 'vworld') {
+            if (typeof drawVWorldRoute === 'function') {
+                await drawVWorldRoute(myCurrentLocation, routeOrder);
+            } else {
+                console.error('drawVWorldRoute function not found');
+                showMapMessage('경로 그리기 함수를 찾을 수 없습니다.', 'error');
+                btn.classList.remove('bg-yellow-500');
+                btn.classList.add('bg-white', 'text-slate-700');
+                btn.textContent = '🗺️ 최적경로';
+                return;
+            }
+        }
+        
+        isRouteActive = true;
+        btn.classList.remove('bg-yellow-500');
+        btn.classList.add('bg-purple-600', 'text-white');
+        btn.textContent = '✓ 경로표시중';
+        
+        showMapMessage(`최적 경로 완성! 이 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
+    } catch (error) {
+        console.error('경로 계산 오류:', error);
+        showMapMessage('경로 계산 중 오류가 발생했습니다.', 'error');
+        btn.classList.remove('bg-yellow-500');
+        btn.classList.add('bg-white', 'text-slate-700');
+        btn.textContent = '🗺️ 최적경로';
     }
-    
-    isRouteActive = true;
-    btn.classList.remove('bg-yellow-500');
-    btn.classList.add('bg-purple-600', 'text-white');
-    btn.textContent = '✓ 경로표시중';
-    
-    showMapMessage(`최적 경로 완성! 이 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
 }
 
 // 실제 도로를 따라 경로 그리기 (카카오맵)

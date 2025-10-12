@@ -6,6 +6,8 @@ function showMapView() {
     
     const mapType = currentProject.mapType || 'kakao';
     
+    console.log('showMapView called, mapType:', mapType);
+    
     // 지도 초기화 (충분한 지연 시간)
     setTimeout(() => {
         console.log('Initializing map, type:', mapType);
@@ -35,6 +37,7 @@ function showMapView() {
         } else if (mapType === 'vworld') {
             // VWorld 표시, 카카오맵 숨기기
             document.getElementById('kakaoMap').style.display = 'none';
+            
             if (!document.getElementById('vworldMap')) {
                 // VWorld 지도 컨테이너 생성
                 const mapView = document.getElementById('mapView');
@@ -43,21 +46,44 @@ function showMapView() {
                 vworldDiv.id = 'vworldMap';
                 vworldDiv.style.cssText = 'width: 100%; height: 100%; position: absolute; top: 0; left: 0;';
                 mapContainer.appendChild(vworldDiv);
+                
+                console.log('VWorld container created');
+                
+                // 컨테이너 생성 후 지도 초기화
+                setTimeout(() => {
+                    initVWorldMap();
+                    
+                    // 지도 초기화 후 마커 표시
+                    setTimeout(() => {
+                        if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
+                            console.log('Auto-displaying markers on VWorld map...');
+                            displayProjectOnVWorldMap(currentProject.data);
+                        }
+                    }, 1500);
+                }, 300);
             } else {
                 document.getElementById('vworldMap').style.display = 'block';
-            }
-            
-            if (!vworldMap) {
-                initVWorldMap();
-            }
-            
-            // VWorld 지도 마커 표시
-            setTimeout(() => {
-                if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
-                    console.log('Auto-displaying markers on VWorld map...');
-                    displayProjectOnVWorldMap(currentProject.data);
+                
+                if (!vworldMap) {
+                    initVWorldMap();
+                    
+                    // 지도 초기화 후 마커 표시
+                    setTimeout(() => {
+                        if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
+                            console.log('Auto-displaying markers on VWorld map...');
+                            displayProjectOnVWorldMap(currentProject.data);
+                        }
+                    }, 1500);
+                } else {
+                    // 이미 지도가 있으면 바로 마커 표시
+                    setTimeout(() => {
+                        if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
+                            console.log('Displaying markers on existing VWorld map...');
+                            displayProjectOnVWorldMap(currentProject.data);
+                        }
+                    }, 300);
                 }
-            }, 500);
+            }
         }
     }, 300);
 }

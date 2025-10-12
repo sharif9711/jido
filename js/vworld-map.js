@@ -599,18 +599,75 @@ function openMemoModalVWorld(markerIndex) {
     modal.style.display = 'flex';
 }
 
-// VWorld 경로 그리기
+// VWorld 경로 그리기 (OSRM 사용)
 async function drawVWorldRoute(start, waypoints) {
+    if (!vworldMap) {
+        console.error('VWorld map not initialized');
+        showMapMessage('지도가 초기화되지 않았습니다.', 'error');
+        return;
+    }
+    
+    console.log('drawVWorldRoute called with', waypoints.length, 'waypoints');
+    
     const allPoints = [start, ...waypoints];
     const pathCoords = [];
     
     // 시작점 추가
     pathCoords.push(ol.proj.fromLonLat([start.lng, start.lat]));
     
-    // 각 구간 연결
+    // 각 구간을 OSRM으로 경로 찾기
     for (let i = 0; i < allPoints.length - 1; i++) {
+        const origin = allPoints[i];
         const destination = allPoints[i + 1];
-        pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+        
+        console.log(`Finding route ${i + 1}/${allPoints.length - 1}:`, origin, '->', destination);
+        
+        try {
+            // OSRM API 호출 (무료 공개 서버)
+            const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+            
+            console.log('OSRM request:', url);
+            
+            const response = await fetch(url);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.routes && data.routes[0] && data.routes[0].geometry) {
+                    const coordinates = data.routes[0].geometry.coordinates;
+                    
+                    // GeoJSON 좌표를 OpenLayers 좌표로 변환
+                    coordinates.forEach(coord => {
+                        pathCoords.push(ol.proj.fromLonLat(coord));
+                    });
+                    
+                    console.log(`✓ OSRM route segment ${i + 1}: ${coordinates.length} points`);
+                } else {
+                    console.warn('OSRM response has no routes, using straight line');
+                    // OSRM 실패 시 직선으로
+                    pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+                }
+            } else {
+                console.warn('OSRM API failed, using straight line');
+                // API 실패 시 직선으로
+                pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+            }
+        } catch (error) {
+            console.error('OSRM routing error:', error);
+            // 오류 시 직선으로
+            pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+        }
+        
+        // API 요청 간격 (OSRM 공개 서버 제한)
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    console.log('Total route points:', pathCoords.length);
+    
+    if (pathCoords.length < 2) {
+        console.error('Not enough points to draw route');
+        showMapMessage('경로를 그릴 수 없습니다.', 'error');
+        return;
     }
     
     // 경로 선 생성
@@ -623,7 +680,9 @@ async function drawVWorldRoute(start, waypoints) {
     const routeStyle = new ol.style.Style({
         stroke: new ol.style.Stroke({
             color: '#4A90E2',
-            width: 6
+            width: 6,
+            lineCap: 'round',
+            lineJoin: 'round'
         })
     });
     
@@ -639,6 +698,7 @@ async function drawVWorldRoute(start, waypoints) {
     });
     
     vworldMap.addLayer(vworldRouteLayer);
+    console.log('Route layer added to map');
     
     // 순번 마커 추가
     waypoints.forEach((point, index) => {
@@ -672,6 +732,8 @@ async function drawVWorldRoute(start, waypoints) {
         vworldMap.addOverlay(markerOverlay);
         vworldRouteMarkers.push(markerOverlay);
     });
+    
+    console.log('Route markers added:', vworldRouteMarkers.length);
 }
 
 // 나머지 기존 VWorld 함수들
@@ -1087,39 +1149,47 @@ async function getAddressDetailInfo(address) {
 // 지번 외곽선 레이어 추가
 var parcelBoundaryLayer = null;
 
-// 지번 외곽선 표시
+// 지번 외곽선 레이어 추가
+var parcelBoundaryLayer = null;
+
+// 지번 외곽선 표시 (개선된 버전)
 function showParcelBoundaries() {
-    if (!vworldMap) return;
+    if (!vworldMap) {
+        console.error('VWorld map not initialized for parcel boundaries');
+        return;
+    }
     
     // 이미 레이어가 있으면 제거
     if (parcelBoundaryLayer) {
         vworldMap.removeLayer(parcelBoundaryLayer);
+        parcelBoundaryLayer = null;
     }
     
-    // VWorld 연속지적도 WMS 레이어
-    parcelBoundaryLayer = new ol.layer.Tile({
-        source: new ol.source.TileWMS({
-            url: 'https://api.vworld.kr/req/wms',
-            params: {
-                'SERVICE': 'WMS',
-                'VERSION': '1.3.0',
-                'REQUEST': 'GetMap',
-                'LAYERS': 'lp_pa_cbnd_bubun',
-                'STYLES': '',
-                'FORMAT': 'image/png',
-                'TRANSPARENT': true,
-                'KEY': VWORLD_API_KEY,
-                'DOMAIN': window.location.origin
-            },
-            serverType: 'geoserver',
-            crossOrigin: 'anonymous'
-        }),
-        opacity: 0.6,
-        zIndex: 1
-    });
-    
-    vworldMap.addLayer(parcelBoundaryLayer);
-    console.log('Parcel boundary layer added');
+    try {
+        // VWorld 연속지적도 WMS 레이어 (수정된 파라미터)
+        parcelBoundaryLayer = new ol.layer.Tile({
+            source: new ol.source.TileWMS({
+                url: 'https://api.vworld.kr/req/wms',
+                params: {
+                    'LAYERS': 'lp_pa_cbnd_bubun',
+                    'TILED': true,
+                    'VERSION': '1.3.0',
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'CRS': 'EPSG:3857',
+                    'KEY': VWORLD_API_KEY
+                },
+                serverType: 'geoserver'
+            }),
+            opacity: 0.7,
+            zIndex: 1
+        });
+        
+        vworldMap.addLayer(parcelBoundaryLayer);
+        console.log('✓ Parcel boundary layer added successfully');
+    } catch (error) {
+        console.error('Failed to add parcel boundary layer:', error);
+    }
 }
 
 // initVWorldMap 함수 수정 (지번 외곽선 자동 표시)
@@ -1166,11 +1236,12 @@ function initVWorldMap() {
         });
 
         console.log('VWorld map initialized successfully');
-        
-        // 지번 외곽선 표시
-        setTimeout(() => {
-            showParcelBoundaries();
-        }, 1000);
+
+// 지도 로드 완료 후 지번 외곽선 표시
+vworldMap.once('rendercomplete', function() {
+    console.log('VWorld map render complete, adding parcel boundaries...');
+    showParcelBoundaries();
+});
         
     } catch (error) {
         console.error('Failed to initialize VWorld map:', error);
