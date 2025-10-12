@@ -415,19 +415,16 @@ async function drawRoadRoute(start, waypoints) {
         await new Promise(resolve => setTimeout(resolve, 300));
     }
     
-    // 메인 경로 선 그리기 (두꺼운 선)
+    // 경로 선 그리기
     routePolyline = new kakao.maps.Polyline({
         map: kakaoMap,
         path: pathCoords,
-        strokeWeight: 8,
+        strokeWeight: 6,
         strokeColor: '#4A90E2',
-        strokeOpacity: 0.8,
+        strokeOpacity: 0.9,
         strokeStyle: 'solid',
         zIndex: 2
     });
-    
-    // 방향 화살표 추가
-    drawDirectionArrows(pathCoords);
     
     // 순번 마커 추가
     waypoints.forEach((point, index) => {
