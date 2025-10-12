@@ -7,21 +7,22 @@ function openCreateModal() {
 function closeCreateModal() {
     document.getElementById('createModal').classList.remove('active');
     document.getElementById('projectName').value = '';
-    document.getElementById('projectContact').value = '';
     document.getElementById('projectPassword').value = '';
+    // 카카오맵을 기본값으로 체크
+    document.getElementById('mapTypeKakao').checked = true;
 }
 
 function createProject() {
     const name = document.getElementById('projectName').value;
-    const contact = document.getElementById('projectContact').value;
     const password = document.getElementById('projectPassword').value;
+    const mapType = document.querySelector('input[name="mapType"]:checked').value;
 
-    if (!name || !contact || !password) {
-        alert('모든 필드를 입력해주세요.');
+    if (!name || !password) {
+        alert('프로젝트 이름과 비밀번호를 입력해주세요.');
         return;
     }
 
-    const project = createProjectData(name, contact, password);
+    const project = createProjectData(name, password, mapType);
     projects.unshift(project);
     closeCreateModal();
     renderProjects();

@@ -6,23 +6,39 @@ function showMapView() {
     
     // 지도 초기화 (충분한 지연 시간)
     setTimeout(() => {
-        console.log('Initializing Kakao Map...');
-        if (!kakaoMap) {
-            initKakaoMap();
-        } else {
-            // 기존 지도가 있으면 relayout 호출 (안전하게)
-            if (kakaoMap && typeof kakaoMap.relayout === 'function') {
-                kakaoMap.relayout();
-            }
-        }
+        const mapType = currentProject.mapType || 'kakao';
         
-        // 지도 초기화 후 자동으로 마커 표시
-        setTimeout(() => {
-            if (currentProject && currentProject.data && typeof displayProjectOnKakaoMap === 'function') {
-                console.log('Auto-displaying markers on map...');
-                displayProjectOnKakaoMap(currentProject.data);
+        console.log('Initializing map, type:', mapType);
+        
+        if (mapType === 'kakao') {
+            if (!kakaoMap) {
+                initKakaoMap();
+            } else {
+                if (kakaoMap && typeof kakaoMap.relayout === 'function') {
+                    kakaoMap.relayout();
+                }
             }
-        }, 500);
+            
+            // 지도 초기화 후 자동으로 마커 표시
+            setTimeout(() => {
+                if (currentProject && currentProject.data && typeof displayProjectOnKakaoMap === 'function') {
+                    console.log('Auto-displaying markers on Kakao map...');
+                    displayProjectOnKakaoMap(currentProject.data);
+                }
+            }, 500);
+        } else if (mapType === 'vworld') {
+            if (!vworldMap) {
+                initVWorldMap();
+            }
+            
+            // VWorld 지도 마커 표시
+            setTimeout(() => {
+                if (currentProject && currentProject.data && typeof displayProjectOnMap === 'function') {
+                    console.log('Auto-displaying markers on VWorld map...');
+                    displayProjectOnMap(currentProject.data);
+                }
+            }, 500);
+        }
     }, 300);
 }
 

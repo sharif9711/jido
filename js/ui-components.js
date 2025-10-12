@@ -325,12 +325,37 @@ function getCreateModalHTML() {
                             <input type="text" id="projectName" placeholder="프로젝트 이름을 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-slate-700">연락처</label>
-                            <input type="tel" id="projectContact" placeholder="연락처를 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                        <div class="space-y-2">
                             <label class="block text-sm font-medium text-slate-700">비밀번호</label>
                             <input type="password" id="projectPassword" placeholder="비밀번호를 입력하세요" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-slate-700">지도 유형</label>
+                            <div class="flex gap-3">
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="mapType" value="kakao" id="mapTypeKakao" checked class="peer hidden">
+                                    <div class="border-2 border-slate-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 rounded-lg p-4 transition-all hover:border-slate-400">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <div class="w-5 h-5 rounded-full border-2 border-slate-300 peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center">
+                                                <div class="w-2 h-2 bg-white rounded-full hidden peer-checked:block"></div>
+                                            </div>
+                                            <span class="font-semibold text-slate-900">카카오맵</span>
+                                        </div>
+                                        <p class="text-xs text-slate-600">상세한 주소 검색과 길찾기</p>
+                                    </div>
+                                </label>
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="mapType" value="vworld" id="mapTypeVworld" class="peer hidden">
+                                    <div class="border-2 border-slate-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 rounded-lg p-4 transition-all hover:border-slate-400">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <div class="w-5 h-5 rounded-full border-2 border-slate-300 peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center">
+                                                <div class="w-2 h-2 bg-white rounded-full hidden peer-checked:block"></div>
+                                            </div>
+                                            <span class="font-semibold text-slate-900">VWorld</span>
+                                        </div>
+                                        <p class="text-xs text-slate-600">토지 정보와 지적도</p>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
                         <div class="flex gap-3 pt-4">
                             <button onclick="closeCreateModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors">취소</button>

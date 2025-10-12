@@ -32,12 +32,12 @@ function createInitialData() {
 }
 
 // 프로젝트 생성
-function createProjectData(name, contact, password) {
+function createProjectData(name, password, mapType) {
     return {
         id: Date.now().toString(),
         projectName: name,
-        contact: contact,
         password: password,
+        mapType: mapType || 'kakao', // 'kakao' 또는 'vworld'
         createdAt: new Date(),
         data: createInitialData()
     };

@@ -1,5 +1,3 @@
-// 프로젝트 목록 화면 관련 함수
-
 function renderProjects() {
     const emptyState = document.getElementById('emptyState');
     const projectsList = document.getElementById('projectsList');
@@ -19,7 +17,12 @@ function renderProjects() {
         projectsList.style.display = 'block';
         projectCount.textContent = projects.length;
 
-        projectsGrid.innerHTML = projects.map(project => `
+        projectsGrid.innerHTML = projects.map(project => {
+            const mapTypeBadge = project.mapType === 'vworld' 
+                ? '<span class="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded">VWorld</span>'
+                : '<span class="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">카카오맵</span>';
+            
+            return `
             <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group relative">
                 <button onclick="deleteProject(event, '${project.id}')" class="absolute top-3 right-3 p-1.5 bg-red-50 hover:bg-red-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100 z-10" title="프로젝트 삭제">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600">
@@ -38,16 +41,11 @@ function renderProjects() {
                                 <line x1="15" y1="6" x2="15" y2="21"></line>
                             </svg>
                         </div>
+                        ${mapTypeBadge}
                     </div>
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-slate-900 line-clamp-1">${project.projectName}</h3>
                         <div class="space-y-2.5">
-                            <div class="flex items-center gap-2 text-sm text-slate-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                </svg>
-                                <span>${project.contact}</span>
-                            </div>
                             <div class="flex items-center gap-2 text-xs text-slate-500 pt-2 border-t border-slate-200">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -61,7 +59,8 @@ function renderProjects() {
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 }
 
