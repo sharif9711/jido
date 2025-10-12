@@ -461,53 +461,42 @@ async function drawRoadRoute(start, waypoints) {
     });
 }
 
-// 방향 화살표를 애니메이션과 함께 그리기
+// 경로에 방향 화살표 그리기
 function drawDirectionArrows(pathCoords) {
     if (pathCoords.length < 2) return;
     
-    const arrowInterval = Math.floor(pathCoords.length / 15);
+    // 경로를 따라 일정 간격으로 화살표 배치
+    const arrowInterval = Math.floor(pathCoords.length / 15); // 약 15개의 화살표
     
     for (let i = arrowInterval; i < pathCoords.length - 1; i += arrowInterval) {
         const start = pathCoords[i];
         const end = pathCoords[i + 1];
         
+        // 두 점 사이의 각도 계산
         const angle = calculateAngle(start, end);
         
-        // 그라데이션과 그림자가 있는 화살표
+        // 화살표 SVG
         const arrowSvg = `
-            <div style="
-                width: 28px;
-                height: 28px;
-                background: linear-gradient(135deg, #4A90E2, #357ABD);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                animation: pulse 1.5s ease-in-out infinite;
-                transform: rotate(${angle}deg);
-            ">
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                    <path d="M12 4 L12 20 M12 20 L8 16 M12 20 L16 16" 
-                          stroke="white" 
-                          stroke-width="3" 
-                          fill="none" 
-                          stroke-linecap="round" 
-                          stroke-linejoin="round"/>
-                </svg>
-            </div>
-            <style>
-                @keyframes pulse {
-                    0%, 100% { transform: rotate(${angle}deg) scale(1); opacity: 1; }
-                    50% { transform: rotate(${angle}deg) scale(1.1); opacity: 0.8; }
-                }
-            </style>
+            <svg width="24" height="24" viewBox="0 0 24 24" style="transform: rotate(${angle}deg);">
+                <path d="M12 2 L12 18 M12 18 L6 12 M12 18 L18 12" 
+                      stroke="white" 
+                      stroke-width="2.5" 
+                      fill="none" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"/>
+                <path d="M12 2 L12 18 M12 18 L6 12 M12 18 L18 12" 
+                      stroke="#4A90E2" 
+                      stroke-width="2" 
+                      fill="none" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"/>
+            </svg>
         `;
         
         const arrowOverlay = new kakao.maps.CustomOverlay({
             map: kakaoMap,
             position: start,
-            content: `<div style="transform: translate(-14px, -14px);">${arrowSvg}</div>`,
+            content: `<div style="transform: translate(-12px, -12px);">${arrowSvg}</div>`,
             zIndex: 3
         });
         
