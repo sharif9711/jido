@@ -43,7 +43,7 @@ function vworldJsonp(url) {
     });
 }
 
-// 지도 초기화 (위성 영상 + 라벨)
+// initVWorldMap 함수 수정 (지번 외곽선 자동 표시)
 function initVWorldMap() {
     const mapContainer = document.getElementById('vworldMap');
     if (!mapContainer) {
@@ -56,38 +56,47 @@ function initVWorldMap() {
         vworldMap = null;
     }
 
-    vworldMap = new ol.Map({
-        target: 'vworldMap',
-        layers: [
-            // 위성 영상
-            new ol.layer.Tile({
-                source: new ol.source.XYZ({
-                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg',
-                    crossOrigin: 'anonymous'
-                })
-            }),
-            // 라벨(지명) 레이어
-            new ol.layer.Tile({
-                source: new ol.source.XYZ({
-                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png',
-                    crossOrigin: 'anonymous'
+    try {
+        vworldMap = new ol.Map({
+            target: 'vworldMap',
+            layers: [
+                // 위성 영상
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg'
+                    })
                 }),
-                opacity: 0.8
-            })
-        ],
-        view: new ol.View({
-            center: ol.proj.fromLonLat([126.978, 37.5665]),
-            zoom: 12
-        }),
-        controls: [
-            new ol.control.Zoom(),
-            new ol.control.Attribution(),
-            new ol.control.FullScreen(),
-            new ol.control.ScaleLine()
-        ]
-    });
+                // 라벨(지명) 레이어
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png'
+                    }),
+                    opacity: 0.8
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([126.978, 37.5665]),
+                zoom: 12
+            }),
+            controls: [
+                new ol.control.Zoom(),
+                new ol.control.Attribution(),
+                new ol.control.FullScreen(),
+                new ol.control.ScaleLine()
+            ]
+        });
 
-    console.log('VWorld map initialized with Satellite + Labels');
+        console.log('VWorld map initialized successfully');
+
+        // 지도 로드 완료 후 지번 외곽선 표시
+        vworldMap.once('rendercomplete', function() {
+            console.log('VWorld map render complete, adding parcel boundaries...');
+            showParcelBoundaries();
+        });
+        
+    } catch (error) {
+        console.error('Failed to initialize VWorld map:', error);
+    }
 }
 
 // 주소를 좌표로 변환 (JSONP 방식으로 변경)
