@@ -636,8 +636,7 @@ async function drawVWorldRoute(start, waypoints) {
         vworldMap.addOverlay(markerOverlay);
         vworldRouteMarkers.push(markerOverlay);
         });
-    });
-}
+    }
 
 // 거리 계산
 function getDistance(lat1, lng1, lat2, lng2) {
