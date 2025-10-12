@@ -61,7 +61,7 @@ function initVWorldMap() {
         layers: [
             new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Base/{z}/{y}/{x}.png'
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg'
                 })
             })
         ],
@@ -75,7 +75,7 @@ function initVWorldMap() {
         ])
     });
 
-    console.log('VWorld map initialized');
+    console.log('VWorld map initialized with Satellite imagery');
 }
 
 // 주소를 좌표로 변환
@@ -105,26 +105,77 @@ async function geocodeAddressVWorld(address) {
     return null;
 }
 
-// 마커 생성 (카카오맵 스타일과 유사하게)
+// 마커 생성 (카카오맵 스타일과 유사하게 + 외곽 경계 추가)
 function createVWorldMarker(coordinate, 순번, status) {
     let baseColor = '#3b82f6';
-    if (status === '완료') baseColor = '#10b981';
-    if (status === '보류') baseColor = '#f59e0b';
+    let borderColor = '#3b82f6';
+    if (status === '완료') { 
+        baseColor = '#10b981'; 
+        borderColor = '#10b981';
+    }
+    if (status === '보류') { 
+        baseColor = '#f59e0b'; 
+        borderColor = '#f59e0b';
+    }
 
     const markerElement = document.createElement('div');
     markerElement.innerHTML = `
         <div style="
-            width: 40px;
-            height: 52px;
+            width: 60px;
+            height: 72px;
             position: relative;
             cursor: pointer;
         ">
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
-                <ellipse cx="20" cy="48" rx="12" ry="3" fill="rgba(0,0,0,0.2)"/>
-                <path d="M20 0 C9 0 0 9 0 20 C0 28 20 48 20 48 C20 48 40 28 40 20 C40 9 31 0 20 0 Z" fill="${baseColor}" stroke="#fff" stroke-width="2"/>
-                <circle cx="20" cy="18" r="12" fill="white" opacity="0.95"/>
-                <text x="20" y="23" font-family="Arial" font-size="12" font-weight="bold" fill="${baseColor}" text-anchor="middle">${순번}</text>
+            <!-- 외곽 경계 (더 큰 원) -->
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: ${borderColor};
+                opacity: 0.3;
+                animation: pulse-border 2s infinite;
+            "></div>
+            
+            <!-- 마커 SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="72" viewBox="0 0 60 72" style="position: absolute; top: 0; left: 0;">
+                <ellipse cx="30" cy="66" rx="15" ry="4" fill="rgba(0,0,0,0.2)"/>
+                
+                <!-- 외곽 테두리 (상태별 색상) -->
+                <path d="M30 2 C17 2 6 13 6 26 C6 38 30 66 30 66 C30 66 54 38 54 26 C54 13 43 2 30 2 Z" 
+                      fill="none" 
+                      stroke="${borderColor}" 
+                      stroke-width="4"
+                      opacity="0.6"/>
+                
+                <!-- 메인 마커 -->
+                <path d="M30 5 C18.5 5 9 14.5 9 26 C9 36 30 63 30 63 C30 63 51 36 51 26 C51 14.5 41.5 5 30 5 Z" 
+                      fill="${baseColor}" 
+                      stroke="#fff" 
+                      stroke-width="2"/>
+                
+                <circle cx="30" cy="24" r="14" fill="white" opacity="0.95"/>
+                <text x="30" y="30" font-family="Arial" font-size="14" font-weight="bold" fill="${baseColor}" text-anchor="middle">${순번}</text>
             </svg>
+            
+            <style>
+                @keyframes pulse-border {
+                    0% { 
+                        transform: scale(1); 
+                        opacity: 0.3; 
+                    }
+                    50% { 
+                        transform: scale(1.3); 
+                        opacity: 0.1; 
+                    }
+                    100% { 
+                        transform: scale(1); 
+                        opacity: 0.3; 
+                    }
+                }
+            </style>
         </div>
     `;
 
