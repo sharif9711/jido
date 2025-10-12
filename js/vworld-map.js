@@ -43,7 +43,7 @@ function vworldJsonp(url) {
     });
 }
 
-// 지도 초기화
+// 지도 초기화 (위성 영상 + 라벨)
 function initVWorldMap() {
     const mapContainer = document.getElementById('vworldMap');
     if (!mapContainer) {
@@ -59,23 +59,35 @@ function initVWorldMap() {
     vworldMap = new ol.Map({
         target: 'vworldMap',
         layers: [
+            // 위성 영상
             new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg'
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg',
+                    crossOrigin: 'anonymous'
                 })
+            }),
+            // 라벨(지명) 레이어
+            new ol.layer.Tile({
+                source: new ol.source.XYZ({
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png',
+                    crossOrigin: 'anonymous'
+                }),
+                opacity: 0.8
             })
         ],
         view: new ol.View({
             center: ol.proj.fromLonLat([126.978, 37.5665]),
             zoom: 12
         }),
-        controls: ol.control.defaults().extend([
+        controls: [
+            new ol.control.Zoom(),
+            new ol.control.Attribution(),
             new ol.control.FullScreen(),
             new ol.control.ScaleLine()
-        ])
+        ]
     });
 
-    console.log('VWorld map initialized with Satellite imagery');
+    console.log('VWorld map initialized with Satellite + Labels');
 }
 
 // 주소를 좌표로 변환
