@@ -279,7 +279,7 @@ async function displayProjectOnVWorldMap(projectData) {
 
 // 마커 표시를 2번 반복 (누락 방지)
     for (let attempt = 1; attempt <= 2; attempt++) {
-        console.log(`\n========== 마커 표시 시도 ${attempt}/2 ==========`);
+        console.log('========== 마커 표시 시도 ' + attempt + '/2 ==========');
         
         // attempt가 2번째일 때는 이미 추가된 마커 건너뛰기
         const alreadyAddedAddresses = new Set();
@@ -287,17 +287,15 @@ async function displayProjectOnVWorldMap(projectData) {
             markerListData.forEach(item => {
                 alreadyAddedAddresses.add(item.주소);
             });
-            console.log(`이미 추가된 마커: ${alreadyAddedAddresses.size}개`);
+            console.log('이미 추가된 마커: ' + alreadyAddedAddresses.size + '개');
         }
-    }
 
-
-    for (let i = 0; i < addressesWithData.length; i++) {
+        for (let i = 0; i < addressesWithData.length; i++) {
             const row = addressesWithData[i];
             
             // 2번째 시도에서 이미 추가된 주소는 건너뛰기
             if (attempt === 2 && alreadyAddedAddresses.has(row.주소)) {
-                console.log(`⏭️ Skip (already added): ${row.주소}`);
+                console.log('⏭️ Skip (already added): ' + row.주소);
                 continue;
             }
             
@@ -310,7 +308,7 @@ async function displayProjectOnVWorldMap(projectData) {
                     lat: row.vworld_lat,
                     address: row.주소
                 };
-                console.log(`✅ [시도 ${attempt}] Using cached VWorld coords for: ${row.주소}`);
+                console.log('✅ [시도 ' + attempt + '] Using cached VWorld coords for: ' + row.주소);
             }
             // 2순위: 카카오맵 좌표가 있으면 재사용 (WGS84 좌표계 동일)
             else if (row.lat && row.lng) {
@@ -319,29 +317,29 @@ async function displayProjectOnVWorldMap(projectData) {
                     lat: row.lat,
                     address: row.주소
                 };
-                console.log(`✅ [시도 ${attempt}] Using cached Kakao coords for: ${row.주소}`);
+                console.log('✅ [시도 ' + attempt + '] Using cached Kakao coords for: ' + row.주소);
             }
             // 3순위: 새로 좌표 검색
             else {
-                console.log(`🔍 [시도 ${attempt}] Searching coordinates for: ${row.주소}`);
+                console.log('🔍 [시도 ' + attempt + '] Searching coordinates for: ' + row.주소);
                 coord = await geocodeAddressVWorld(row.주소);
             }
             
             if (coord) {
-                console.log(`✅ [시도 ${attempt}] Address ${i + 1}/${addressesWithData.length}: ${row.주소}`, coord);
+                console.log('✅ [시도 ' + attempt + '] Address ' + (i + 1) + '/' + addressesWithData.length + ': ' + row.주소, coord);
                 
                 // 좌표 유효성 검사
                 if (isNaN(coord.lon) || isNaN(coord.lat)) {
-                    console.error(`❌ [시도 ${attempt}] Invalid coordinates:`, coord);
+                    console.error('❌ [시도 ' + attempt + '] Invalid coordinates:', coord);
                     if (loadingStatus) {
-                        loadingStatus.textContent = `[시도 ${attempt}/2] 주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+                        loadingStatus.textContent = '[시도 ' + attempt + '/2] 주소 검색 중... (' + (i + 1) + '/' + addressesWithData.length + ') - 성공: ' + successCount + '개';
                     }
                     continue;
                 }
                 
                 // 좌표 범위 검사 (한국 영역)
                 if (coord.lon < 124 || coord.lon > 132 || coord.lat < 33 || coord.lat > 43) {
-                    console.warn(`⚠️ [시도 ${attempt}] Coordinates outside Korea:`, coord);
+                    console.warn('⚠️ [시도 ' + attempt + '] Coordinates outside Korea:', coord);
                 }
                 
                 // 원본 데이터에 좌표 저장
@@ -368,11 +366,11 @@ async function displayProjectOnVWorldMap(projectData) {
                     lng: parseFloat(coord.lon)
                 };
                 
-                console.log(`🔵 [시도 ${attempt}] Creating marker for:`, rowDataWithCoords.이름 || rowDataWithCoords.주소);
+                console.log('🔵 [시도 ' + attempt + '] Creating marker for:', rowDataWithCoords.이름 || rowDataWithCoords.주소);
                 
                 const marker = addVWorldMarker(
                     coord, 
-                    row.이름 || `#${row.순번}`, 
+                    row.이름 || '#' + row.순번, 
                     row.상태, 
                     rowDataWithCoords, 
                     isDuplicate, 
@@ -393,38 +391,46 @@ async function displayProjectOnVWorldMap(projectData) {
                     });
                     
                     successCount++;
-                    console.log(`✔ [시도 ${attempt}] Marker ${successCount} added successfully (${i + 1}/${addressesWithData.length})`);
+                    console.log('✔ [시도 ' + attempt + '] Marker ' + successCount + ' added successfully (' + (i + 1) + '/' + addressesWithData.length + ')');
                 } else {
-                    console.error(`❌ [시도 ${attempt}] Failed to create marker for:`, row.주소);
+                    console.error('❌ [시도 ' + attempt + '] Failed to create marker for:', row.주소);
                 }
             } else {
-                console.error(`❌ [시도 ${attempt}] No coordinates found for address ${i + 1}: ${row.주소}`);
+                console.error('❌ [시도 ' + attempt + '] No coordinates found for address ' + (i + 1) + ': ' + row.주소);
             }
 
             if (loadingStatus) {
-                loadingStatus.textContent = `[시도 ${attempt}/2] 주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+                loadingStatus.textContent = '[시도 ' + attempt + '/2] 주소 검색 중... (' + (i + 1) + '/' + addressesWithData.length + ') - 성공: ' + successCount + '개';
             }
         }
         
         // 1번째 시도 완료 후 결과 확인
         if (attempt === 1) {
-            console.log(`\n========== 1차 시도 완료: ${successCount}/${addressesWithData.length}개 성공 ==========`);
+            console.log('========== 1차 시도 완료: ' + successCount + '/' + addressesWithData.length + '개 성공 ==========');
             
             // 모든 마커가 표시되었으면 2번째 시도 생략
             if (successCount === addressesWithData.length) {
                 console.log('✅ 모든 마커가 표시되어 2차 시도 생략');
                 break;
             } else {
-                console.log(`⚠️ ${addressesWithData.length - successCount}개 누락, 2차 시도 시작...`);
+                console.log('⚠️ ' + (addressesWithData.length - successCount) + '개 누락, 2차 시도 시작...');
                 // 2번째 시도 전 잠시 대기
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
     }
+
     
     // 2번 반복 후 최종 결과
-    console.log(`\n========== 최종 결과: ${successCount}/${addressesWithData.length}개 마커 표시 완료 ==========`);
+    console.log('========== 최종 결과: ' + successCount + '/' + addressesWithData.length + '개 마커 표시 완료 ==========');
     
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) {
+        projects[projectIndex] = currentProject;
+    }
+}
+
+
     // 모든 좌표 검색 완료 대기
     const results = await Promise.all(markerPromises);
     
