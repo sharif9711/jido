@@ -277,116 +277,153 @@ async function displayProjectOnVWorldMap(projectData) {
     let successCount = 0;
     markerListData = [];
 
+// 마커 표시를 2번 반복 (누락 방지)
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        console.log(`\n========== 마커 표시 시도 ${attempt}/2 ==========`);
+        
+        // attempt가 2번째일 때는 이미 추가된 마커 건너뛰기
+        const alreadyAddedAddresses = new Set();
+        if (attempt === 2) {
+            markerListData.forEach(item => {
+                alreadyAddedAddresses.add(item.주소);
+            });
+            console.log(`이미 추가된 마커: ${alreadyAddedAddresses.size}개`);
+        }
+    }
+
+
     for (let i = 0; i < addressesWithData.length; i++) {
-        const row = addressesWithData[i];
-        
-        let coord = null;
-        
-        // 1순위: VWorld 전용 좌표가 있으면 사용
-        if (row.vworld_lon && row.vworld_lat) {
-            coord = {
-                lon: row.vworld_lon,
-                lat: row.vworld_lat,
-                address: row.주소
-            };
-            console.log(`✅ Using cached VWorld coords for: ${row.주소}`);
-        }
-        // 2순위: 카카오맵 좌표가 있으면 재사용 (WGS84 좌표계 동일)
-        else if (row.lat && row.lng) {
-            coord = {
-                lon: row.lng,
-                lat: row.lat,
-                address: row.주소
-            };
-            console.log(`✅ Using cached Kakao coords for: ${row.주소}`);
-        }
-        // 3순위: 새로 좌표 검색
-        else {
-            console.log(`🔍 Searching coordinates for: ${row.주소}`);
-            coord = await geocodeAddressVWorld(row.주소);
-        }
-        
-        if (coord) {
-            console.log(`✅ Address ${i + 1}/${addressesWithData.length}: ${row.주소}`, coord);
+            const row = addressesWithData[i];
             
-            // 좌표 유효성 검사
-            if (isNaN(coord.lon) || isNaN(coord.lat)) {
-                console.error('❌ Invalid coordinates:', coord);
-                if (loadingStatus) {
-                    loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
-                }
+            // 2번째 시도에서 이미 추가된 주소는 건너뛰기
+            if (attempt === 2 && alreadyAddedAddresses.has(row.주소)) {
+                console.log(`⏭️ Skip (already added): ${row.주소}`);
                 continue;
             }
             
-            // 좌표 범위 검사 (한국 영역)
-            if (coord.lon < 124 || coord.lon > 132 || coord.lat < 33 || coord.lat > 43) {
-                console.warn('⚠️ Coordinates outside Korea:', coord);
+            let coord = null;
+            
+            // 1순위: VWorld 전용 좌표가 있으면 사용
+            if (row.vworld_lon && row.vworld_lat) {
+                coord = {
+                    lon: row.vworld_lon,
+                    lat: row.vworld_lat,
+                    address: row.주소
+                };
+                console.log(`✅ [시도 ${attempt}] Using cached VWorld coords for: ${row.주소}`);
+            }
+            // 2순위: 카카오맵 좌표가 있으면 재사용 (WGS84 좌표계 동일)
+            else if (row.lat && row.lng) {
+                coord = {
+                    lon: row.lng,
+                    lat: row.lat,
+                    address: row.주소
+                };
+                console.log(`✅ [시도 ${attempt}] Using cached Kakao coords for: ${row.주소}`);
+            }
+            // 3순위: 새로 좌표 검색
+            else {
+                console.log(`🔍 [시도 ${attempt}] Searching coordinates for: ${row.주소}`);
+                coord = await geocodeAddressVWorld(row.주소);
             }
             
-            // 원본 데이터에 좌표 저장
-            const originalRow = currentProject.data.find(r => r.id === row.id);
-            if (originalRow) {
-                originalRow.vworld_lon = parseFloat(coord.lon);
-                originalRow.vworld_lat = parseFloat(coord.lat);
+            if (coord) {
+                console.log(`✅ [시도 ${attempt}] Address ${i + 1}/${addressesWithData.length}: ${row.주소}`, coord);
                 
-                if (!originalRow.lat || !originalRow.lng) {
-                    originalRow.lat = parseFloat(coord.lat);
-                    originalRow.lng = parseFloat(coord.lon);
+                // 좌표 유효성 검사
+                if (isNaN(coord.lon) || isNaN(coord.lat)) {
+                    console.error(`❌ [시도 ${attempt}] Invalid coordinates:`, coord);
+                    if (loadingStatus) {
+                        loadingStatus.textContent = `[시도 ${attempt}/2] 주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+                    }
+                    continue;
                 }
-            }
-            
-            row.vworld_lon = parseFloat(coord.lon);
-            row.vworld_lat = parseFloat(coord.lat);
-            
-            const isDuplicate = duplicateCheck[row.주소] > 1;
-            
-            const rowDataWithCoords = {
-                ...row,
-                lon: parseFloat(coord.lon),
-                lat: parseFloat(coord.lat),
-                lng: parseFloat(coord.lon)
-            };
-            
-            console.log('🔵 Creating marker for:', rowDataWithCoords.이름 || rowDataWithCoords.주소);
-            
-            const marker = addVWorldMarker(
-                coord, 
-                row.이름 || `#${row.순번}`, 
-                row.상태, 
-                rowDataWithCoords, 
-                isDuplicate, 
-                vworldMarkers.length
-            );
-            
-            if (marker) {
-                coordinates.push([coord.lon, coord.lat]);
-                markerListData.push({
-                    순번: row.순번,
-                    이름: row.이름,
-                    연락처: row.연락처,
-                    주소: row.주소,
-                    상태: row.상태,
-                    lat: parseFloat(coord.lat),
-                    lng: parseFloat(coord.lon),
-                    isDuplicate
-                });
                 
-                successCount++;
-                console.log(`✔ Marker ${successCount} added successfully (${i + 1}/${addressesWithData.length})`);
+                // 좌표 범위 검사 (한국 영역)
+                if (coord.lon < 124 || coord.lon > 132 || coord.lat < 33 || coord.lat > 43) {
+                    console.warn(`⚠️ [시도 ${attempt}] Coordinates outside Korea:`, coord);
+                }
+                
+                // 원본 데이터에 좌표 저장
+                const originalRow = currentProject.data.find(r => r.id === row.id);
+                if (originalRow) {
+                    originalRow.vworld_lon = parseFloat(coord.lon);
+                    originalRow.vworld_lat = parseFloat(coord.lat);
+                    
+                    if (!originalRow.lat || !originalRow.lng) {
+                        originalRow.lat = parseFloat(coord.lat);
+                        originalRow.lng = parseFloat(coord.lon);
+                    }
+                }
+                
+                row.vworld_lon = parseFloat(coord.lon);
+                row.vworld_lat = parseFloat(coord.lat);
+                
+                const isDuplicate = duplicateCheck[row.주소] > 1;
+                
+                const rowDataWithCoords = {
+                    ...row,
+                    lon: parseFloat(coord.lon),
+                    lat: parseFloat(coord.lat),
+                    lng: parseFloat(coord.lon)
+                };
+                
+                console.log(`🔵 [시도 ${attempt}] Creating marker for:`, rowDataWithCoords.이름 || rowDataWithCoords.주소);
+                
+                const marker = addVWorldMarker(
+                    coord, 
+                    row.이름 || `#${row.순번}`, 
+                    row.상태, 
+                    rowDataWithCoords, 
+                    isDuplicate, 
+                    vworldMarkers.length
+                );
+                
+                if (marker) {
+                    coordinates.push([coord.lon, coord.lat]);
+                    markerListData.push({
+                        순번: row.순번,
+                        이름: row.이름,
+                        연락처: row.연락처,
+                        주소: row.주소,
+                        상태: row.상태,
+                        lat: parseFloat(coord.lat),
+                        lng: parseFloat(coord.lon),
+                        isDuplicate
+                    });
+                    
+                    successCount++;
+                    console.log(`✔ [시도 ${attempt}] Marker ${successCount} added successfully (${i + 1}/${addressesWithData.length})`);
+                } else {
+                    console.error(`❌ [시도 ${attempt}] Failed to create marker for:`, row.주소);
+                }
             } else {
-                console.error('❌ Failed to create marker for:', row.주소);
+                console.error(`❌ [시도 ${attempt}] No coordinates found for address ${i + 1}: ${row.주소}`);
             }
-        } else {
-            console.error(`❌ No coordinates found for address ${i + 1}: ${row.주소}`);
-        }
 
-        if (loadingStatus) {
-            loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+            if (loadingStatus) {
+                loadingStatus.textContent = `[시도 ${attempt}/2] 주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+            }
         }
         
-        // 딜레이 완전 제거 - 이미 좌표가 있으면 즉시 처리
-        // await new Promise(resolve => setTimeout(resolve, 0));
+        // 1번째 시도 완료 후 결과 확인
+        if (attempt === 1) {
+            console.log(`\n========== 1차 시도 완료: ${successCount}/${addressesWithData.length}개 성공 ==========`);
+            
+            // 모든 마커가 표시되었으면 2번째 시도 생략
+            if (successCount === addressesWithData.length) {
+                console.log('✅ 모든 마커가 표시되어 2차 시도 생략');
+                break;
+            } else {
+                console.log(`⚠️ ${addressesWithData.length - successCount}개 누락, 2차 시도 시작...`);
+                // 2번째 시도 전 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
     }
+    
+    // 2번 반복 후 최종 결과
+    console.log(`\n========== 최종 결과: ${successCount}/${addressesWithData.length}개 마커 표시 완료 ==========`);
     
     // 모든 좌표 검색 완료 대기
     const results = await Promise.all(markerPromises);
