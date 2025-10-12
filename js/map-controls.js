@@ -461,47 +461,53 @@ async function drawRoadRoute(start, waypoints) {
     });
 }
 
-// 경로에 방향 화살표 그리기
+// 경로에 방향 화살표 그리기 (심플 버전)
 function drawDirectionArrows(pathCoords) {
     if (pathCoords.length < 2) return;
     
-    // 경로를 따라 일정 간격으로 화살표 배치
-    const arrowInterval = Math.floor(pathCoords.length / 15); // 약 15개의 화살표
+    const arrowInterval = Math.floor(pathCoords.length / 12); // 약 12개의 화살표
     
     for (let i = arrowInterval; i < pathCoords.length - 1; i += arrowInterval) {
         const start = pathCoords[i];
         const end = pathCoords[i + 1];
         
-        // 두 점 사이의 각도 계산
         const angle = calculateAngle(start, end);
         
-        // 화살표 SVG
-        const arrowSvg = `
-            <svg width="24" height="24" viewBox="0 0 24 24" style="transform: rotate(${angle}deg);">
-                <path d="M12 2 L12 18 M12 18 L6 12 M12 18 L18 12" 
-                      stroke="white" 
-                      stroke-width="2.5" 
-                      fill="none" 
-                      stroke-linecap="round" 
-                      stroke-linejoin="round"/>
-                <path d="M12 2 L12 18 M12 18 L6 12 M12 18 L18 12" 
-                      stroke="#4A90E2" 
-                      stroke-width="2" 
-                      fill="none" 
-                      stroke-linecap="round" 
-                      stroke-linejoin="round"/>
-            </svg>
+        // 삼각형 화살표
+        const arrowContent = `
+            <div style="
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-bottom: 14px solid #4A90E2;
+                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+                transform: rotate(${angle}deg);
+            "></div>
         `;
         
         const arrowOverlay = new kakao.maps.CustomOverlay({
             map: kakaoMap,
             position: start,
-            content: `<div style="transform: translate(-12px, -12px);">${arrowSvg}</div>`,
+            content: `<div style="transform: translate(-8px, -7px);">${arrowContent}</div>`,
             zIndex: 3
         });
         
         routeMarkers.push(arrowOverlay);
     }
+}
+
+// 두 좌표 사이의 각도 계산
+function calculateAngle(start, end) {
+    const startLat = start.getLat();
+    const startLng = start.getLng();
+    const endLat = end.getLat();
+    const endLng = end.getLng();
+    
+    const dLng = endLng - startLng;
+    const dLat = endLat - startLat;
+    
+    return Math.atan2(dLng, dLat) * (180 / Math.PI);
 }
 
 // 두 좌표 사이의 각도 계산 (도 단위)
