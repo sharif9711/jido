@@ -43,7 +43,6 @@ function vworldJsonp(url) {
     });
 }
 
-// initVWorldMap 함수 수정 (지번 외곽선 자동 표시)
 function initVWorldMap() {
     const mapContainer = document.getElementById('vworldMap');
     if (!mapContainer) {
@@ -60,18 +59,31 @@ function initVWorldMap() {
         vworldMap = new ol.Map({
             target: 'vworldMap',
             layers: [
-                // 위성 영상
+                // VWorld 기본 위성 영상
                 new ol.layer.Tile({
                     source: new ol.source.XYZ({
-                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg'
-                    })
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Satellite/{z}/{y}/{x}.jpeg',
+                        crossOrigin: 'anonymous'
+                    }),
+                    zIndex: 0
+                }),
+                // VWorld 기본 지번도 (gray - 지적 경계 포함)
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/gray/{z}/{y}/{x}.png',
+                        crossOrigin: 'anonymous'
+                    }),
+                    opacity: 0.4,
+                    zIndex: 1
                 }),
                 // 라벨(지명) 레이어
                 new ol.layer.Tile({
                     source: new ol.source.XYZ({
-                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png'
+                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Hybrid/{z}/{y}/{x}.png',
+                        crossOrigin: 'anonymous'
                     }),
-                    opacity: 0.8
+                    opacity: 0.8,
+                    zIndex: 2
                 })
             ],
             view: new ol.View({
@@ -86,16 +98,10 @@ function initVWorldMap() {
             ]
         });
 
-        console.log('VWorld map initialized successfully');
-
-        // 지도 로드 완료 후 지번 외곽선 표시
-        vworldMap.once('rendercomplete', function() {
-            console.log('VWorld map render complete, adding parcel boundaries...');
-            showParcelBoundaries();
-        });
+        console.log('✅ VWorld map initialized with default layers');
         
     } catch (error) {
-        console.error('Failed to initialize VWorld map:', error);
+        console.error('❌ Failed to initialize VWorld map:', error);
     }
 }
 
@@ -126,96 +132,49 @@ async function geocodeAddressVWorld(address) {
     return null;
 }
 
-// 마커 생성 (카카오맵 스타일과 유사하게 + 외곽 경계 추가)
+// VWorld 기본 마커 사용 (간단한 핀 모양)
 function createVWorldMarker(coordinate, 순번, status) {
-    let baseColor = '#3b82f6';
-    let borderColor = '#3b82f6';
-    if (status === '완료') { 
-        baseColor = '#10b981'; 
-        borderColor = '#10b981';
-    }
-    if (status === '보류') { 
-        baseColor = '#f59e0b'; 
-        borderColor = '#f59e0b';
-    }
+    let color = '#3b82f6';  // 파란색
+    if (status === '완료') color = '#10b981';  // 초록색
+    if (status === '보류') color = '#f59e0b';  // 주황색
 
     const markerElement = document.createElement('div');
     markerElement.innerHTML = `
         <div style="
-            width: 60px;
-            height: 72px;
             position: relative;
             cursor: pointer;
+            transform: translate(-50%, -100%);
         ">
-            <!-- 외곽 경계 (더 큰 원) -->
-            <div style="
-                position: absolute;
-                top: 0;
-                left: 10px;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: ${borderColor};
-                opacity: 0.3;
-                animation: pulse-border 2s infinite;
-            "></div>
-            
-            <!-- 마커 SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="72" viewBox="0 0 60 72" style="position: absolute; top: 0; left: 0;">
-                <ellipse cx="30" cy="66" rx="15" ry="4" fill="rgba(0,0,0,0.2)"/>
-                
-                <!-- 외곽 테두리 (상태별 색상) -->
-                <path d="M30 2 C17 2 6 13 6 26 C6 38 30 66 30 66 C30 66 54 38 54 26 C54 13 43 2 30 2 Z" 
-                      fill="none" 
-                      stroke="${borderColor}" 
-                      stroke-width="4"
-                      opacity="0.6"/>
-                
-                <!-- 메인 마커 -->
-                <path d="M30 5 C18.5 5 9 14.5 9 26 C9 36 30 63 30 63 C30 63 51 36 51 26 C51 14.5 41.5 5 30 5 Z" 
-                      fill="${baseColor}" 
+            <!-- 기본 핀 모양 -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+                <path d="M16 0 C7.16 0 0 7.16 0 16 C0 24 16 40 16 40 C16 40 32 24 32 16 C32 7.16 24.84 0 16 0 Z" 
+                      fill="${color}" 
                       stroke="#fff" 
                       stroke-width="2"/>
-                
-                <circle cx="30" cy="24" r="14" fill="white" opacity="0.95"/>
-                <text x="30" y="30" font-family="Arial" font-size="14" font-weight="bold" fill="${baseColor}" text-anchor="middle">${순번}</text>
+                <circle cx="16" cy="16" r="8" fill="white" opacity="0.9"/>
+                <text x="16" y="20" 
+                      font-family="Arial" 
+                      font-size="10" 
+                      font-weight="bold" 
+                      fill="${color}" 
+                      text-anchor="middle">${순번}</text>
             </svg>
-            
-            <style>
-                @keyframes pulse-border {
-                    0% { 
-                        transform: scale(1); 
-                        opacity: 0.3; 
-                    }
-                    50% { 
-                        transform: scale(1.3); 
-                        opacity: 0.1; 
-                    }
-                    100% { 
-                        transform: scale(1); 
-                        opacity: 0.3; 
-                    }
-                }
-            </style>
         </div>
     `;
 
     return markerElement;
 }
 
-// 마커 추가 (디버깅 강화)
+// 마커 추가 (간소화)
 function addVWorldMarker(coordinate, label, status, rowData, isDuplicate, markerIndex) {
     if (!vworldMap) {
         console.error('VWorld map not initialized');
         return null;
     }
 
-    console.log('Adding VWorld marker:', { coordinate, label, status });
-
     const markerElement = createVWorldMarker(coordinate, rowData.순번, status);
     
     const position = ol.proj.fromLonLat([coordinate.lon, coordinate.lat]);
-    console.log('Marker position:', position);
     
     const marker = new ol.Overlay({
         position: position,
@@ -225,49 +184,46 @@ function addVWorldMarker(coordinate, label, status, rowData, isDuplicate, marker
     });
 
     vworldMap.addOverlay(marker);
-    console.log('Marker added to map');
 
     // 클릭 이벤트
     markerElement.onclick = () => {
-        console.log('Marker clicked:', rowData);
         showBottomInfoPanelVWorld(rowData, markerIndex);
     };
 
-    // 이름 라벨
-    const labelBg = isDuplicate ? '#ef4444' : '#ffffff';
-    const labelColor = isDuplicate ? '#ffffff' : '#1e293b';
-    
-    const labelElement = document.createElement('div');
-    labelElement.innerHTML = `
-        <div style="
-            background: ${labelBg};
-            color: ${labelColor};
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            white-space: nowrap;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 2px solid rgba(255,255,255,0.9);
-            pointer-events: none;
-        ">${rowData.이름 || '이름없음'}</div>
-    `;
-
-    const labelOverlay = new ol.Overlay({
-        position: position,
-        element: labelElement,
-        positioning: 'bottom-center',
-        offset: [0, -75],
-        stopEvent: false
-    });
-
+    // 이름 라벨 (선택사항 - showLabels가 true일 때만)
+    let labelOverlay = null;
     if (showLabels) {
+        const labelBg = isDuplicate ? '#ef4444' : '#ffffff';
+        const labelColor = isDuplicate ? '#ffffff' : '#1e293b';
+        
+        const labelElement = document.createElement('div');
+        labelElement.innerHTML = `
+            <div style="
+                background: ${labelBg};
+                color: ${labelColor};
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                border: 1px solid rgba(255,255,255,0.8);
+                pointer-events: none;
+            ">${rowData.이름 || '이름없음'}</div>
+        `;
+
+        labelOverlay = new ol.Overlay({
+            position: position,
+            element: labelElement,
+            positioning: 'bottom-center',
+            offset: [0, -45],
+            stopEvent: false
+        });
+
         vworldMap.addOverlay(labelOverlay);
     }
 
     vworldMarkers.push({ marker, labelOverlay, rowData });
-    
-    console.log('Total VWorld markers:', vworldMarkers.length);
     
     return marker;
 }
@@ -1217,7 +1173,7 @@ var parcelBoundaryLayer = null;
 // 지번 외곽선 레이어 추가
 var parcelBoundaryLayer = null;
 
-// 지번 외곽선 표시 (확실한 방법)
+// VWorld 기본 지번도 사용
 function showParcelBoundaries() {
     if (!vworldMap) {
         console.error('VWorld map not initialized for parcel boundaries');
@@ -1231,61 +1187,24 @@ function showParcelBoundaries() {
     }
     
     try {
-        console.log('🗺️ Adding parcel boundary layer...');
+        console.log('🗺️ Adding VWorld default parcel layer...');
         
-        // VWorld 연속지적도 - 가장 확실한 방법 (Base 타일 사용)
+        // VWorld에서 제공하는 기본 지적도 레이어
         parcelBoundaryLayer = new ol.layer.Tile({
             source: new ol.source.XYZ({
-                url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/Base/{z}/{y}/{x}.png',
-                crossOrigin: 'anonymous',
-                tileLoadFunction: function(imageTile, src) {
-                    // 지적도만 보이도록 특수 파라미터 추가
-                    const newSrc = src.replace('/Base/', '/lp_pa_cbnd_bubun/');
-                    imageTile.getImage().src = newSrc;
-                }
+                url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/gray/{z}/{y}/{x}.png',
+                crossOrigin: 'anonymous'
             }),
-            opacity: 0.5,
-            zIndex: 100,
+            opacity: 0.4,
+            zIndex: 1,
             visible: true
         });
         
         vworldMap.addLayer(parcelBoundaryLayer);
-        console.log('✅ Parcel boundary layer added successfully');
-        
-        // 타일 로드 에러 감지
-        let errorCount = 0;
-        parcelBoundaryLayer.getSource().on('tileloaderror', function(event) {
-            errorCount++;
-            if (errorCount === 1) {  // 첫 에러만 로그
-                console.warn('⚠️ Tile load error detected, trying alternative...');
-                
-                // 대체 방법: 일반 지도 + 투명도
-                if (parcelBoundaryLayer) {
-                    vworldMap.removeLayer(parcelBoundaryLayer);
-                }
-                
-                parcelBoundaryLayer = new ol.layer.Tile({
-                    source: new ol.source.XYZ({
-                        url: 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_API_KEY + '/midnight/{z}/{y}/{x}.png',
-                        crossOrigin: 'anonymous'
-                    }),
-                    opacity: 0.3,
-                    zIndex: 100,
-                    visible: true
-                });
-                
-                vworldMap.addLayer(parcelBoundaryLayer);
-                console.log('✅ Alternative layer added (midnight style)');
-            }
-        });
-        
-        // 타일 로드 성공 감지
-        parcelBoundaryLayer.getSource().on('tileloadend', function() {
-            console.log('✅ Parcel tiles loaded successfully');
-        });
+        console.log('✅ VWorld default parcel layer added');
         
     } catch (error) {
-        console.error('❌ Failed to add parcel boundary layer:', error);
+        console.error('❌ Failed to add parcel layer:', error);
     }
 }
 
