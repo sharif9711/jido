@@ -90,19 +90,19 @@ function initVWorldMap() {
     console.log('VWorld map initialized with Satellite + Labels');
 }
 
-// 주소를 좌표로 변환
+// 주소를 좌표로 변환 (JSONP 방식으로 변경)
 async function geocodeAddressVWorld(address) {
     if (!address || address.trim() === '') {
         return null;
     }
 
     try {
+        // JSONP 방식으로 CORS 우회
         const url = 'https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&address=' + encodeURIComponent(address) + '&refine=true&simple=false&format=json&type=road&key=' + VWORLD_API_KEY;
         
-        const response = await fetch(url);
-        const data = await response.json();
+        const data = await vworldJsonp(url);
 
-        if (data.response.status === 'OK' && data.response.result) {
+        if (data && data.response && data.response.status === 'OK' && data.response.result) {
             const point = data.response.result.point;
             return {
                 lon: parseFloat(point.x),
