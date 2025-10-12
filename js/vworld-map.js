@@ -321,8 +321,9 @@ async function displayProjectOnVWorldMap(projectData) {
     let successCount = 0;
     markerListData = [];
 
-    // 모든 마커를 동시에 처리 (Promise.all 사용)
-    const markerPromises = addressesWithData.map(async (row, i) => {
+    for (let i = 0; i < addressesWithData.length; i++) {
+        const row = addressesWithData[i];
+        
         let coord = null;
         
         // 1순위: VWorld 전용 좌표가 있으면 사용
@@ -332,6 +333,7 @@ async function displayProjectOnVWorldMap(projectData) {
                 lat: row.vworld_lat,
                 address: row.주소
             };
+            console.log(`✅ Using cached VWorld coords for: ${row.주소}`);
         }
         // 2순위: 카카오맵 좌표가 있으면 재사용 (WGS84 좌표계 동일)
         else if (row.lat && row.lng) {
@@ -340,9 +342,11 @@ async function displayProjectOnVWorldMap(projectData) {
                 lat: row.lat,
                 address: row.주소
             };
+            console.log(`✅ Using cached Kakao coords for: ${row.주소}`);
         }
         // 3순위: 새로 좌표 검색
         else {
+            console.log(`🔍 Searching coordinates for: ${row.주소}`);
             coord = await geocodeAddressVWorld(row.주소);
         }
         
@@ -352,7 +356,10 @@ async function displayProjectOnVWorldMap(projectData) {
             // 좌표 유효성 검사
             if (isNaN(coord.lon) || isNaN(coord.lat)) {
                 console.error('❌ Invalid coordinates:', coord);
-                return null;
+                if (loadingStatus) {
+                    loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
+                }
+                continue;
             }
             
             // 좌표 범위 검사 (한국 영역)
@@ -384,18 +391,46 @@ async function displayProjectOnVWorldMap(projectData) {
                 lng: parseFloat(coord.lon)
             };
             
-            return {
-                coord,
-                row,
-                rowDataWithCoords,
-                isDuplicate,
-                index: i
-            };
+            console.log('🔵 Creating marker for:', rowDataWithCoords.이름 || rowDataWithCoords.주소);
+            
+            const marker = addVWorldMarker(
+                coord, 
+                row.이름 || `#${row.순번}`, 
+                row.상태, 
+                rowDataWithCoords, 
+                isDuplicate, 
+                vworldMarkers.length
+            );
+            
+            if (marker) {
+                coordinates.push([coord.lon, coord.lat]);
+                markerListData.push({
+                    순번: row.순번,
+                    이름: row.이름,
+                    연락처: row.연락처,
+                    주소: row.주소,
+                    상태: row.상태,
+                    lat: parseFloat(coord.lat),
+                    lng: parseFloat(coord.lon),
+                    isDuplicate
+                });
+                
+                successCount++;
+                console.log(`✔ Marker ${successCount} added successfully (${i + 1}/${addressesWithData.length})`);
+            } else {
+                console.error('❌ Failed to create marker for:', row.주소);
+            }
+        } else {
+            console.error(`❌ No coordinates found for address ${i + 1}: ${row.주소}`);
+        }
+
+        if (loadingStatus) {
+            loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
         }
         
-        console.error(`❌ No coordinates found for address ${i + 1}: ${row.주소}`);
-        return null;
-    });
+        // 딜레이 완전 제거 - 이미 좌표가 있으면 즉시 처리
+        // await new Promise(resolve => setTimeout(resolve, 0));
+    }
     
     // 모든 좌표 검색 완료 대기
     const results = await Promise.all(markerPromises);
