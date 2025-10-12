@@ -4,13 +4,19 @@ function showMapView() {
     document.getElementById('normalView').style.display = 'none';
     document.getElementById('mapView').style.display = 'block';
     
+    const mapType = currentProject.mapType || 'kakao';
+    
     // 지도 초기화 (충분한 지연 시간)
     setTimeout(() => {
-        const mapType = currentProject.mapType || 'kakao';
-        
         console.log('Initializing map, type:', mapType);
         
         if (mapType === 'kakao') {
+            // 카카오맵 표시, VWorld 숨기기
+            document.getElementById('kakaoMap').style.display = 'block';
+            if (document.getElementById('vworldMap')) {
+                document.getElementById('vworldMap').style.display = 'none';
+            }
+            
             if (!kakaoMap) {
                 initKakaoMap();
             } else {
@@ -27,15 +33,29 @@ function showMapView() {
                 }
             }, 500);
         } else if (mapType === 'vworld') {
+            // VWorld 표시, 카카오맵 숨기기
+            document.getElementById('kakaoMap').style.display = 'none';
+            if (!document.getElementById('vworldMap')) {
+                // VWorld 지도 컨테이너 생성
+                const mapView = document.getElementById('mapView');
+                const mapContainer = mapView.querySelector('[style*="height: calc"]');
+                const vworldDiv = document.createElement('div');
+                vworldDiv.id = 'vworldMap';
+                vworldDiv.style.cssText = 'width: 100%; height: 100%; position: absolute; top: 0; left: 0;';
+                mapContainer.appendChild(vworldDiv);
+            } else {
+                document.getElementById('vworldMap').style.display = 'block';
+            }
+            
             if (!vworldMap) {
                 initVWorldMap();
             }
             
             // VWorld 지도 마커 표시
             setTimeout(() => {
-                if (currentProject && currentProject.data && typeof displayProjectOnMap === 'function') {
+                if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
                     console.log('Auto-displaying markers on VWorld map...');
-                    displayProjectOnMap(currentProject.data);
+                    displayProjectOnVWorldMap(currentProject.data);
                 }
             }, 500);
         }

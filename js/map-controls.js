@@ -7,6 +7,7 @@ var markerListData = [];
 var myCurrentLocation = null;
 var routePolyline = null;
 var routeMarkers = []; // 경로 순번 마커들
+var isRouteActive = false;
 
 // 마커 목록 토글
 function toggleMarkerList() {
@@ -42,8 +43,7 @@ function updateMarkerList() {
     }
 
     content.innerHTML = markerListData.map((item, index) => {
-        // 상태별 색상
-        let statusColor = 'bg-blue-100 text-blue-700'; // 예정
+        let statusColor = 'bg-blue-100 text-blue-700';
         if (item.상태 === '완료') statusColor = 'bg-green-100 text-green-700';
         if (item.상태 === '보류') statusColor = 'bg-amber-100 text-amber-700';
         
@@ -86,25 +86,39 @@ function focusOnMarker(index) {
     if (index < 0 || index >= markerListData.length) return;
     
     const item = markerListData[index];
-    if (item.lat && item.lng && kakaoMap) {
-        const position = new kakao.maps.LatLng(item.lat, item.lng);
-        kakaoMap.setCenter(position);
-        kakaoMap.setLevel(3);
+    const mapType = currentProject.mapType || 'kakao';
+    
+    if (mapType === 'kakao') {
+        if (item.lat && item.lng && kakaoMap) {
+            const position = new kakao.maps.LatLng(item.lat, item.lng);
+            kakaoMap.setCenter(position);
+            kakaoMap.setLevel(3);
+        }
+    } else if (mapType === 'vworld') {
+        if (item.lat && item.lng && vworldMap) {
+            const position = ol.proj.fromLonLat([item.lng, item.lat]);
+            vworldMap.getView().animate({
+                center: position,
+                zoom: 17,
+                duration: 500
+            });
+        }
     }
 }
 
 // 내 위치 표시 토글
-var gpsWatchId = null; // 위치 추적 ID
+var gpsWatchId = null;
 
 function toggleMyLocation() {
     const btn = document.getElementById('toggleGpsBtn');
+    const mapType = currentProject.mapType || 'kakao';
     
     // 상태 0: OFF → 상태 1: 내 위치 표시
     if (!isGpsActive && !gpsWatchId) {
         if (navigator.geolocation) {
             btn.classList.add('bg-yellow-500', 'text-white');
             btn.classList.remove('bg-white', 'text-slate-700', 'bg-green-600');
-            btn.textContent = '🔡 검색중...';
+            btn.textContent = '📡 검색중...';
             showMapMessage('현재 위치를 검색하고 있습니다...', 'info');
             
             navigator.geolocation.getCurrentPosition(
@@ -112,16 +126,41 @@ function toggleMyLocation() {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     
-                    const myPosition = new kakao.maps.LatLng(lat, lng);
-                    
-                    if (myLocationMarker) {
-                        myLocationMarker.setMap(null);
-                    }
-                    
-                    // 더 시인성 좋은 내 위치 마커 생성
-                    myLocationMarker = new kakao.maps.CustomOverlay({
-                        position: myPosition,
-                        content: `
+                    if (mapType === 'kakao') {
+                        const myPosition = new kakao.maps.LatLng(lat, lng);
+                        
+                        if (myLocationMarker) {
+                            myLocationMarker.setMap(null);
+                        }
+                        
+                        myLocationMarker = new kakao.maps.CustomOverlay({
+                            position: myPosition,
+                            content: `
+                                <div style="position: relative; width: 40px; height: 40px;">
+                                    <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
+                                    <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+                                    <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
+                                </div>
+                                <style>
+                                    @keyframes pulse {
+                                        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                                        100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+                                    }
+                                </style>
+                            `,
+                            map: kakaoMap,
+                            zIndex: 10
+                        });
+                        
+                        kakaoMap.setCenter(myPosition);
+                        kakaoMap.setLevel(4);
+                    } else if (mapType === 'vworld') {
+                        if (myLocationMarker) {
+                            vworldMap.removeOverlay(myLocationMarker);
+                        }
+                        
+                        const markerElement = document.createElement('div');
+                        markerElement.innerHTML = `
                             <div style="position: relative; width: 40px; height: 40px;">
                                 <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
                                 <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
@@ -133,13 +172,22 @@ function toggleMyLocation() {
                                     100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
                                 }
                             </style>
-                        `,
-                        map: kakaoMap,
-                        zIndex: 10
-                    });
-                    
-                    kakaoMap.setCenter(myPosition);
-                    kakaoMap.setLevel(4);
+                        `;
+                        
+                        myLocationMarker = new ol.Overlay({
+                            position: ol.proj.fromLonLat([lng, lat]),
+                            element: markerElement,
+                            positioning: 'center-center',
+                            stopEvent: false
+                        });
+                        
+                        vworldMap.addOverlay(myLocationMarker);
+                        vworldMap.getView().animate({
+                            center: ol.proj.fromLonLat([lng, lat]),
+                            zoom: 14,
+                            duration: 500
+                        });
+                    }
                     
                     myCurrentLocation = { lat: lat, lng: lng };
                     
@@ -171,15 +219,35 @@ function toggleMyLocation() {
             function(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                const myPosition = new kakao.maps.LatLng(lat, lng);
                 
-                if (myLocationMarker) {
-                    myLocationMarker.setMap(null);
-                }
-                
-                myLocationMarker = new kakao.maps.CustomOverlay({
-                    position: myPosition,
-                    content: `
+                if (mapType === 'kakao') {
+                    const myPosition = new kakao.maps.LatLng(lat, lng);
+                    
+                    if (myLocationMarker) {
+                        myLocationMarker.setMap(null);
+                    }
+                    
+                    myLocationMarker = new kakao.maps.CustomOverlay({
+                        position: myPosition,
+                        content: `
+                            <div style="position: relative; width: 40px; height: 40px;">
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+                                <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 12px;height: 12px;background: #4285F4;border-radius: 50%;border: 2px solid white;"></div>
+                            </div>
+                        `,
+                        map: kakaoMap,
+                        zIndex: 10
+                    });
+                    
+                    kakaoMap.setCenter(myPosition);
+                } else if (mapType === 'vworld') {
+                    if (myLocationMarker) {
+                        vworldMap.removeOverlay(myLocationMarker);
+                    }
+                    
+                    const markerElement = document.createElement('div');
+                    markerElement.innerHTML = `
                         <div style="position: relative; width: 40px; height: 40px;">
                             <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 40px;height: 40px;background: rgba(66, 133, 244, 0.3);border-radius: 50%;animation: pulse 2s infinite;"></div>
                             <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width: 24px;height: 24px;background: rgba(66, 133, 244, 0.5);border-radius: 50%;border: 3px solid white;box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
@@ -191,12 +259,19 @@ function toggleMyLocation() {
                                 100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
                             }
                         </style>
-                    `,
-                    map: kakaoMap,
-                    zIndex: 10
-                });
+                    `;
+                    
+                    myLocationMarker = new ol.Overlay({
+                        position: ol.proj.fromLonLat([lng, lat]),
+                        element: markerElement,
+                        positioning: 'center-center',
+                        stopEvent: false
+                    });
+                    
+                    vworldMap.addOverlay(myLocationMarker);
+                    vworldMap.getView().setCenter(ol.proj.fromLonLat([lng, lat]));
+                }
                 
-                kakaoMap.setCenter(myPosition);
                 myCurrentLocation = { lat: lat, lng: lng };
             },
             function(error) {
@@ -215,10 +290,16 @@ function toggleMyLocation() {
             navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId = null;
         }
+        
         if (myLocationMarker) {
-            myLocationMarker.setMap(null);
+            if (mapType === 'kakao') {
+                myLocationMarker.setMap(null);
+            } else if (mapType === 'vworld') {
+                vworldMap.removeOverlay(myLocationMarker);
+            }
             myLocationMarker = null;
         }
+        
         isGpsActive = false;
         myCurrentLocation = null;
         btn.classList.remove('bg-green-600', 'bg-blue-600', 'text-white');
@@ -241,15 +322,29 @@ function toggleMarkerLabels() {
         btn.classList.add('bg-white', 'text-slate-700');
     }
     
-    kakaoMarkers.forEach(item => {
-        if (item.customOverlay) {
-            if (showLabels) {
-                item.customOverlay.setMap(kakaoMap);
-            } else {
-                item.customOverlay.setMap(null);
+    const mapType = currentProject.mapType || 'kakao';
+    
+    if (mapType === 'kakao') {
+        kakaoMarkers.forEach(item => {
+            if (item.customOverlay) {
+                if (showLabels) {
+                    item.customOverlay.setMap(kakaoMap);
+                } else {
+                    item.customOverlay.setMap(null);
+                }
             }
-        }
-    });
+        });
+    } else if (mapType === 'vworld') {
+        vworldMarkers.forEach(item => {
+            if (item.labelOverlay) {
+                if (showLabels) {
+                    vworldMap.addOverlay(item.labelOverlay);
+                } else {
+                    vworldMap.removeOverlay(item.labelOverlay);
+                }
+            }
+        });
+    }
 }
 
 // 중복 주소 체크
@@ -262,23 +357,29 @@ function checkDuplicateAddresses(addresses) {
 }
 
 // 최적 경로 계산 (ON/OFF 토글)
-var isRouteActive = false;
-
 async function calculateOptimalRoute() {
     const btn = document.getElementById('optimalRouteBtn');
+    const mapType = currentProject.mapType || 'kakao';
     
     // 이미 경로가 표시되어 있으면 제거 (OFF)
     if (isRouteActive) {
         // 경로 제거
-        if (routePolyline) {
-            routePolyline.setMap(null);
-            routePolyline = null;
+        if (mapType === 'kakao') {
+            if (routePolyline) {
+                routePolyline.setMap(null);
+                routePolyline = null;
+            }
+            routeMarkers.forEach(marker => marker.setMap(null));
+        } else if (mapType === 'vworld') {
+            if (vworldRouteLayer) {
+                vworldMap.removeLayer(vworldRouteLayer);
+                vworldRouteLayer = null;
+            }
+            vworldRouteMarkers.forEach(marker => vworldMap.removeOverlay(marker));
         }
         
-        // 순번 마커 제거
-        routeMarkers.forEach(marker => marker.setMap(null));
         routeMarkers = [];
-        
+        vworldRouteMarkers = [];
         isRouteActive = false;
         
         btn.classList.remove('bg-purple-600', 'text-white');
@@ -350,18 +451,22 @@ async function calculateOptimalRoute() {
         }
     }
     
-    // 경로 그리기
-    await drawRoadRoute(myCurrentLocation, routeOrder);
+    // 경로 그리기 (지도 유형별)
+    if (mapType === 'kakao') {
+        await drawRoadRoute(myCurrentLocation, routeOrder);
+    } else if (mapType === 'vworld') {
+        await drawVWorldRoute(myCurrentLocation, routeOrder);
+    }
     
     isRouteActive = true;
     btn.classList.remove('bg-yellow-500');
     btn.classList.add('bg-purple-600', 'text-white');
     btn.textContent = '✓ 경로표시중';
     
-    showMapMessage(`최적 경로 완성! 총 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
+    showMapMessage(`최적 경로 완성! 이 ${pendingMarkers.length}개 지점 (예정 상태만)`, 'success');
 }
 
-// 실제 도로를 따라 경로 그리기
+// 실제 도로를 따라 경로 그리기 (카카오맵)
 async function drawRoadRoute(start, waypoints) {
     const allPoints = [start, ...waypoints];
     const pathCoords = [];
@@ -458,68 +563,80 @@ async function drawRoadRoute(start, waypoints) {
     });
 }
 
-// 경로에 방향 화살표 그리기 (심플 버전)
-function drawDirectionArrows(pathCoords) {
-    if (pathCoords.length < 2) return;
+// VWorld 경로 그리기
+async function drawVWorldRoute(start, waypoints) {
+    const allPoints = [start, ...waypoints];
+    const pathCoords = [];
     
-    const arrowInterval = Math.floor(pathCoords.length / 12); // 약 12개의 화살표
+    // 시작점 추가
+    pathCoords.push(ol.proj.fromLonLat([start.lng, start.lat]));
     
-    for (let i = arrowInterval; i < pathCoords.length - 1; i += arrowInterval) {
-        const start = pathCoords[i];
-        const end = pathCoords[i + 1];
-        
-        const angle = calculateAngle(start, end);
-        
-        // 삼각형 화살표
-        const arrowContent = `
+    // 각 구간 연결
+    for (let i = 0; i < allPoints.length - 1; i++) {
+        const destination = allPoints[i + 1];
+        pathCoords.push(ol.proj.fromLonLat([destination.lng, destination.lat]));
+    }
+    
+    // 경로 선 생성
+    const routeLine = new ol.geom.LineString(pathCoords);
+    
+    const routeFeature = new ol.Feature({
+        geometry: routeLine
+    });
+    
+    const routeStyle = new ol.style.Style({
+        stroke: new ol.style.Stroke({
+            color: '#4A90E2',
+            width: 6
+        })
+    });
+    
+    routeFeature.setStyle(routeStyle);
+    
+    const vectorSource = new ol.source.Vector({
+        features: [routeFeature]
+    });
+    
+    vworldRouteLayer = new ol.layer.Vector({
+        source: vectorSource,
+        zIndex: 2
+    });
+    
+    vworldMap.addLayer(vworldRouteLayer);
+    
+    // 순번 마커 추가
+    waypoints.forEach((point, index) => {
+        const markerElement = document.createElement('div');
+        markerElement.innerHTML = `
             <div style="
-                width: 0;
-                height: 0;
-                border-left: 8px solid transparent;
-                border-right: 8px solid transparent;
-                border-bottom: 14px solid #4A90E2;
-                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
-                transform: rotate(${angle}deg);
-            "></div>
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+                border: 3px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            ">
+                ${point.순번}
+            </div>
         `;
         
-        const arrowOverlay = new kakao.maps.CustomOverlay({
-            map: kakaoMap,
-            position: start,
-            content: `<div style="transform: translate(-8px, -7px);">${arrowContent}</div>`,
-            zIndex: 3
+        const markerOverlay = new ol.Overlay({
+            position: ol.proj.fromLonLat([point.lng, point.lat]),
+            element: markerElement,
+            positioning: 'center-center',
+            stopEvent: false
         });
         
-        routeMarkers.push(arrowOverlay);
-    }
-}
-
-// 두 좌표 사이의 각도 계산
-function calculateAngle(start, end) {
-    const startLat = start.getLat();
-    const startLng = start.getLng();
-    const endLat = end.getLat();
-    const endLng = end.getLng();
-    
-    const dLng = endLng - startLng;
-    const dLat = endLat - startLat;
-    
-    return Math.atan2(dLng, dLat) * (180 / Math.PI);
-}
-
-// 두 좌표 사이의 각도 계산 (도 단위)
-function calculateAngle(start, end) {
-    const startLat = start.getLat();
-    const startLng = start.getLng();
-    const endLat = end.getLat();
-    const endLng = end.getLng();
-    
-    const dLng = endLng - startLng;
-    const dLat = endLat - startLat;
-    
-    let angle = Math.atan2(dLng, dLat) * (180 / Math.PI);
-    
-    return angle;
+        vworldMap.addOverlay(markerOverlay);
+        vworldRouteMarkers.push(markerOverlay);
+        });
+    });
 }
 
 // 거리 계산

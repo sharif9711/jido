@@ -514,14 +514,30 @@ function closeMemoModal() {
 function saveMemo() {
     const modal = document.getElementById('memoModal');
     const markerIndex = parseInt(modal.dataset.markerIndex);
+    const mapType = modal.dataset.mapType || 'kakao';
     const memoText = document.getElementById('memoInput').value.trim();
     
-    if (!memoText || !kakaoMarkers[markerIndex]) {
+    if (!memoText) {
         alert('메모 내용을 입력해주세요.');
         return;
     }
     
-    const markerData = kakaoMarkers[markerIndex].rowData;
+    let markerData;
+    
+    if (mapType === 'vworld') {
+        if (!vworldMarkers[markerIndex]) {
+            alert('마커를 찾을 수 없습니다.');
+            return;
+        }
+        markerData = vworldMarkers[markerIndex].rowData;
+    } else {
+        if (!kakaoMarkers[markerIndex]) {
+            alert('마커를 찾을 수 없습니다.');
+            return;
+        }
+        markerData = kakaoMarkers[markerIndex].rowData;
+    }
+    
     if (!markerData.메모) markerData.메모 = [];
     
     const now = new Date();
@@ -533,7 +549,6 @@ function saveMemo() {
         row.메모 = markerData.메모;
         const memoEntry = `${markerData.메모.length}. ${memoText} (${timeStr})`;
         
-        // 줄바꿈을 두 번 추가 (\n\n)
         row.기록사항 = (!row.기록사항 || row.기록사항.trim() === '' || row.기록사항 === '-') 
             ? memoEntry 
             : row.기록사항 + '\n\n' + memoEntry;
@@ -545,5 +560,10 @@ function saveMemo() {
     if (projectIndex !== -1) projects[projectIndex] = currentProject;
     
     closeMemoModal();
-    showBottomInfoPanel(markerData, markerIndex);
+    
+    if (mapType === 'vworld') {
+        showBottomInfoPanelVWorld(markerData, markerIndex);
+    } else {
+        showBottomInfoPanel(markerData, markerIndex);
+    }
 }
