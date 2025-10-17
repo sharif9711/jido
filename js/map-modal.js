@@ -52,6 +52,7 @@ function showMapView() {
                 // 컨테이너 생성 후 지도 초기화
                 setTimeout(() => {
                     initVWorldMap();
+                    initParcelLayer(); // ✅ 필지 레이어 초기화
                     
                     // 지도 초기화 후 마커 표시 (시간 증가)
                     setTimeout(() => {
@@ -66,6 +67,7 @@ function showMapView() {
                 
                 if (!vworldMap) {
                     initVWorldMap();
+                    initParcelLayer(); // ✅ 필지 레이어 초기화
                     
                     // 지도 초기화 후 마커 표시 (시간 증가)
                     setTimeout(() => {
@@ -75,7 +77,12 @@ function showMapView() {
                         }
                     }, 2000);
                 } else {
-                    // 이미 지도가 있으면 즉시 마커 표시
+                    // 이미 지도가 있으면 필지 레이어만 확인
+                    if (!parcelLayer) {
+                        initParcelLayer();
+                    }
+                    
+                    // 즉시 마커 표시
                     setTimeout(() => {
                         if (currentProject && currentProject.data && typeof displayProjectOnVWorldMap === 'function') {
                             console.log('Displaying markers on existing VWorld map...');
@@ -91,4 +98,9 @@ function showMapView() {
 function hideMapView() {
     document.getElementById('mapView').style.display = 'none';
     document.getElementById('normalView').style.display = 'block';
+    
+    // 필지 외곽선 초기화 (뷰를 나갈 때 정리)
+    if (typeof clearParcelBoundaries === 'function') {
+        clearParcelBoundaries();
+    }
 }
