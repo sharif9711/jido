@@ -193,9 +193,11 @@ function getProjectDetailHTML() {
             </main>
         </div>
 
+
+
         <!-- 지도 뷰 -->
         <div id="mapView" style="display: none;">
-            <header class="border-b border-slate-300/50 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
+            <header class="border-b border-slate-300/50 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
                 <div class="container mx-auto px-4 py-4">
                     <div class="flex items-center justify-between">
                         <button onclick="hideMapView()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="돌아가기">
@@ -211,52 +213,92 @@ function getProjectDetailHTML() {
                     </div>
                 </div>
             </header>
+            
             <div style="height: calc(100vh - 73px); position: relative;">
                 <!-- 로딩 상태 -->
-                <div id="mapLoadingStatus" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 px-4 py-2 text-sm text-white bg-slate-900/80 rounded-lg backdrop-blur-sm" style="display: none;"></div>
+                <div id="mapLoadingStatus" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 text-sm text-white bg-slate-900/80 rounded-lg backdrop-blur-sm" style="display: none;"></div>
                 
-                <!-- 왼쪽 상단 컨트롤 버튼들 (세로 정렬) -->
-                <div class="absolute top-4 left-4 z-10 flex flex-col gap-2 w-48">
-                    <!-- ✅ 4개 버튼을 세로로 나열 -->
-                    <button id="toggleGpsBtn" onclick="toggleMyLocation()" class="px-3 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200 whitespace-nowrap">
-                        📍 GPS
-                    </button>
-                    <button id="toggleListBtn" onclick="toggleMarkerList()" class="px-3 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200 whitespace-nowrap">
-                        📋 목록
-                    </button>
-                    <button id="optimalRouteBtn" onclick="calculateOptimalRoute()" class="px-3 py-2 bg-white text-slate-700 rounded-lg shadow-lg hover:bg-slate-50 transition-colors font-medium text-sm border border-slate-200 whitespace-nowrap">
-                        🗺️ 최적경로
-                    </button>
-                    <button id="toggleLabelsBtn" onclick="toggleMarkerLabels()" class="px-3 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors font-medium text-sm whitespace-nowrap">
-                        🏷️ 이름
-                    </button>
-
-                    <!-- ✅ VWorld 전용 컨트롤들을 감싸는 div -->
-                    <div id="vworldSpecificControls" class="flex flex-col gap-2">
-                        <!-- ✅ 기본 지도 선택 -->
-                        <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-200">
-                            <label for="baseMapSelector" class="text-xs font-semibold text-slate-700 block mb-1">기본 지도</label>
-                            <select id="baseMapSelector" class="w-full text-sm border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                <option value="satellite">영상 지도</option>
-                                <option value="graphic" selected>그래픽 지도</option>
-                                <option value="osm">OSM 지도</option>
-                            </select>
-                        </div>
-
-                        <!-- ✅ 연속 지적도 투명도 조절 -->
-                        <div class="bg-white p-2 rounded-lg shadow-lg border border-slate-200">
-                            <label for="parcelOpacitySlider" class="text-xs font-semibold text-slate-700 block mb-1">연속 지적도 투명도</label>
-                            <input id="parcelOpacitySlider" type="range" min="0" max="1" step="0.1" value="0.5" class="w-full">
+                <!-- ✅ 반응형 사이드바 (크기 축소: 130px) -->
+                <aside id="mapSidebar" 
+                       class="sidebar left-4 z-40 w-32 bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+                    
+                    <!-- 사이드바 헤더 (접기/펴기 버튼 포함) -->
+                    <div class="sidebar-header bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-sm whitespace-nowrap">지도컨트롤</h3>
+                            <!-- 접기/펴기 버튼만 표시 -->
+                            <button onclick="collapseSidebar()" 
+                                    class="p-1 hover:bg-white/20 rounded transition-colors" 
+                                    title="접기/펴기">
+                                <svg class="collapse-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- 사이드바 컨텐츠 -->
+                    <div class="sidebar-content p-3 overflow-y-auto max-h-[calc(100vh-180px)] space-y-2">
+                        <!-- 기본 컨트롤 -->
+                        <div class="space-y-2">
+                            <button id="toggleGpsBtn" onclick="toggleMyLocation()" 
+                                    class="w-full px-2 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg shadow-md border border-slate-200 transition-all flex items-center gap-2 font-medium text-xs">
+                                <span class="icon-emoji text-lg flex-shrink-0">📍</span>
+                                <span class="whitespace-nowrap">GPS</span>
+                            </button>
+                            
+                            <button id="toggleListBtn" onclick="toggleMarkerList()" 
+                                    class="w-full px-2 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg shadow-md border border-slate-200 transition-all flex items-center gap-2 font-medium text-xs">
+                                <span class="icon-emoji text-lg flex-shrink-0">📋</span>
+                                <span class="whitespace-nowrap">목록</span>
+                            </button>
+                            
+                            <button id="optimalRouteBtn" onclick="calculateOptimalRoute()" 
+                                    class="w-full px-2 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg shadow-md border border-slate-200 transition-all flex items-center gap-2 font-medium text-xs">
+                                <span class="icon-emoji text-lg flex-shrink-0">🗺️</span>
+                                <span class="whitespace-nowrap">경로</span>
+                            </button>
+                            
+                            <button id="toggleLabelsBtn" onclick="toggleMarkerLabels()" 
+                                    class="w-full px-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all flex items-center gap-2 font-medium text-xs">
+                                <span class="icon-emoji text-lg flex-shrink-0">🏷️</span>
+                                <span class="whitespace-nowrap">이름</span>
+                            </button>
+                        </div>
+                        
+                        <!-- VWorld 전용 컨트롤 -->
+                        <div id="vworldSpecificControls" class="space-y-2 pt-2 border-t border-slate-200">
+                            <!-- 기본 지도 선택 -->
+                            <div class="bg-slate-50 p-2 rounded-lg">
+                                <label for="baseMapSelector" class="control-label block text-xs font-semibold text-slate-700 mb-1">지도</label>
+                                <select id="baseMapSelector" 
+                                        class="w-full text-xs border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="satellite">🛰️ 영상</option>
+                                    <option value="graphic" selected>🗺️ 기본</option>
+                                    <option value="osm">🌍 OSM</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 연속 지적도 투명도 -->
+                            <div class="bg-slate-50 p-2 rounded-lg">
+                                <label for="parcelOpacitySlider" class="control-label block text-xs font-semibold text-slate-700 mb-1">
+                                    투명도
+                                </label>
+                                <input id="parcelOpacitySlider" type="range" min="0" max="1" step="0.1" value="0.5" 
+                                       class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                </aside>
 
-                <!-- 마커 목록 패널 -->
-                <div id="markerListPanel" class="absolute top-4 left-[220px] z-10 bg-white rounded-lg shadow-xl w-80 max-w-[calc(100vw-240px)] max-h-[calc(100vh-150px)] overflow-hidden" style="display: none;">
-                    <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-                        <h3 class="font-bold text-slate-900">마커 목록</h3>
-                        <button onclick="toggleMarkerList()" class="p-1 hover:bg-slate-100 rounded">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 마커 목록 패널 (사이드바 옆에 위치) -->
+                <div id="markerListPanel" 
+                     class="absolute z-30 bg-white rounded-xl shadow-2xl w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-150px)] overflow-hidden border border-slate-200" 
+                     style="display: none;">
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex items-center justify-between">
+                        <h3 class="font-bold">마커 목록</h3>
+                        <button onclick="toggleMarkerList()" class="p-1 hover:bg-white/20 rounded transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -274,18 +316,18 @@ function getProjectDetailHTML() {
                 <div id="bottomInfoPanel" class="absolute bottom-0 left-0 right-0 z-20" style="display: none;"></div>
                 
                 <!-- 메모 모달 -->
-                <div id="memoModal" class="fixed inset-0 bg-black/50 items-center justify-center z-30" style="display: none;">
-                    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div id="memoModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" style="display: none;">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
                         <h3 class="text-lg font-bold text-slate-900 mb-4">메모 추가</h3>
                         <textarea id="memoInput" rows="4" placeholder="메모 내용을 입력하세요" 
                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                         <div class="flex gap-3 mt-4">
                             <button onclick="closeMemoModal()" 
-                                    class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                                    class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium">
                                 취소
                             </button>
                             <button onclick="saveMemo()" 
-                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                                 저장
                             </button>
                         </div>
@@ -293,7 +335,8 @@ function getProjectDetailHTML() {
                 </div>
             </div>
         </div>
-        
+
+       
         <style>
             @keyframes slideUp {
                 from {

@@ -1,3 +1,72 @@
+// ✅ 기존 js/map-controls.js 파일의 맨 위에 이 함수들을 추가하세요
+
+// 사이드바 토글 함수 (모바일 - 완전히 숨김/보임)
+function toggleSidebar() {
+    const sidebar = document.getElementById('mapSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    if (sidebar && overlay) {
+        sidebar.classList.toggle('hidden');
+        overlay.classList.toggle('active');
+        
+        // 아이콘 변경
+        if (toggleBtn) {
+            const icon = toggleBtn.querySelector('svg');
+            if (sidebar.classList.contains('hidden')) {
+                // 닫힌 상태 - 햄버거 아이콘
+                icon.innerHTML = `
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                `;
+            } else {
+                // 열린 상태 - X 아이콘
+                icon.innerHTML = `
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                `;
+            }
+        }
+    }
+}
+
+// 사이드바 접기/펴기 함수 (데스크톱/모바일 공통 - 아이콘만 보이기)
+function collapseSidebar() {
+    const sidebar = document.getElementById('mapSidebar');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
+}
+
+// 전체화면 변경 이벤트 리스너
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+function handleFullscreenChange() {
+    const mapView = document.getElementById('mapView');
+    const text = document.getElementById('fullscreenText');
+    
+    if (!document.fullscreenElement) {
+        // 전체화면 종료됨
+        if (mapView) mapView.classList.remove('fullscreen-mode');
+        if (text) text.textContent = '전체';
+    }
+}
+
+// 아래는 기존 코드 그대로 유지
+// var showLabels = true;
+// var myLocationMarker = null;
+// ... 등등
+
+// 아래는 기존 코드 그대로 유지
+// var showLabels = true;
+// var myLocationMarker = null;
+// ... 등등
+
 // 지도 컨트롤 기능
 
 var showLabels = true;
@@ -212,7 +281,7 @@ function toggleMyLocation() {
     else if (isGpsActive && !gpsWatchId) {
         btn.classList.add('bg-blue-600', 'text-white');
         btn.classList.remove('bg-green-600');
-        btn.textContent = '🎯 추적중';
+        btn.textContent = '🎯 추적';
         showMapMessage('실시간 위치 추적을 시작합니다', 'info');
         
         gpsWatchId = navigator.geolocation.watchPosition(
