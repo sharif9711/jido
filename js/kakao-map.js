@@ -134,7 +134,7 @@ function clearKakaoMarkers() {
     kakaoMarkers = [];
 }
 
-// 프로젝트 데이터로 지도에 마커 표시
+// ===== displayProjectOnKakaoMap 함수 전체 =====
 async function displayProjectOnKakaoMap(projectData) {
     if (!kakaoMap) {
         initKakaoMap();
@@ -159,6 +159,12 @@ async function displayProjectOnKakaoMap(projectData) {
             loadingStatus.style.display = 'block';
             loadingStatus.style.backgroundColor = '#f59e0b';
             loadingStatus.textContent = '⚠ 표시할 주소가 없습니다.';
+            
+            setTimeout(() => {
+                if (loadingStatus) {
+                    loadingStatus.style.display = 'none';
+                }
+            }, 2000);
         }
         return;
     }
@@ -177,7 +183,6 @@ async function displayProjectOnKakaoMap(projectData) {
     for (let i = 0; i < addressesWithData.length; i++) {
         const row = addressesWithData[i];
         
-        // 이미 좌표가 있으면 재사용, 없으면 새로 검색
         let coord = null;
         if (row.lat && row.lng) {
             coord = {
@@ -191,7 +196,6 @@ async function displayProjectOnKakaoMap(projectData) {
         }
         
         if (coord) {
-            // 원본 데이터에 좌표 저장 (중요!)
             const originalRow = currentProject.data.find(r => r.id === row.id);
             if (originalRow) {
                 originalRow.lat = parseFloat(coord.lat);
@@ -201,13 +205,11 @@ async function displayProjectOnKakaoMap(projectData) {
                 }
             }
             
-            // row 객체에도 좌표 저장
             row.lat = parseFloat(coord.lat);
             row.lng = parseFloat(coord.lng);
             
             const isDuplicate = duplicateCheck[row.주소] > 1;
             
-            // rowData에 좌표를 명시적으로 포함
             const rowDataWithCoords = {
                 ...row,
                 lat: parseFloat(coord.lat),
@@ -237,45 +239,54 @@ async function displayProjectOnKakaoMap(projectData) {
             loadingStatus.textContent = `주소 검색 중... (${i + 1}/${addressesWithData.length}) - 성공: ${successCount}개`;
         }
         
-        // 이미 좌표가 있으면 딜레이 없음, 새로 검색한 경우만 딜레이
         if (!row.lat || !row.lng) {
             await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
     
-    // 우편번호와 좌표가 업데이트되었으므로 프로젝트 저장
     const projectIndex = projects.findIndex(p => p.id === currentProject.id);
     if (projectIndex !== -1) {
         projects[projectIndex] = currentProject;
     }
     
-    // 보고서 테이블도 업데이트
     if (typeof renderReportTable === 'function') {
         renderReportTable();
     }
 
-    if (!window.mapClickListenerRegistered) {
-        kakao.maps.event.addListener(kakaoMap, 'click', hideBottomInfoPanel);
-        window.mapClickListenerRegistered = true;
-    }
+    kakao.maps.event.addListener(kakaoMap, 'click', function() {
+        hideBottomInfoPanel();
+    });
 
     if (coordinates.length > 0) {
         const bounds = new kakao.maps.LatLngBounds();
         coordinates.forEach(coord => bounds.extend(coord));
         kakaoMap.setBounds(bounds);
-        setTimeout(() => { if (kakaoMap && kakaoMap.relayout) kakaoMap.relayout(); }, 100);
+        setTimeout(() => { 
+            if (kakaoMap && kakaoMap.relayout) {
+                kakaoMap.relayout();
+            }
+        }, 100);
     }
 
     if (loadingStatus) {
         loadingStatus.style.display = 'block';
         loadingStatus.style.backgroundColor = successCount > 0 ? '#10b981' : '#ef4444';
-        loadingStatus.textContent = `✓ 이 ${addressesWithData.length}개 주소 중 ${successCount}개를 지도에 표시했습니다.`;
-        setTimeout(() => { if (loadingStatus) loadingStatus.style.display = 'none'; }, 3000);
+        loadingStatus.textContent = `✔ 이 ${addressesWithData.length}개 주소 중 ${successCount}개를 지도에 표시했습니다.`;
+        setTimeout(() => { 
+            if (loadingStatus) {
+                loadingStatus.style.display = 'none';
+            }
+        }, 3000);
     }
 
     const panel = document.getElementById('markerListPanel');
-    if (panel && panel.style.display !== 'none') updateMarkerList();
+    if (panel && panel.style.display !== 'none') {
+        updateMarkerList();
+    }
 }
+
+// 파일 끝에 이 주석을 추가하여 확인하세요:
+// kakao-map.js 파일 끝
 
 // 지도 탭 활성화
 function onMapTabActivated() {
@@ -399,9 +410,13 @@ function showBottomInfoPanel(rowData, markerIndex) {
 
 function hideBottomInfoPanel() {
     const panel = document.getElementById('bottomInfoPanel');
-    if (panel) {
+    if (panel && panel.style.display !== 'none') {
         panel.style.animation = 'slideDown 0.3s ease-out';
-        setTimeout(() => panel.style.display = 'none', 300);
+        setTimeout(() => {
+            if (panel) {
+                panel.style.display = 'none';
+            }
+        }, 300);
     }
     currentMarkerIndex = null;
     currentDisplayedMarkers = [];
@@ -479,14 +494,14 @@ function changeMarkerStatus(markerIndex, newStatus) {
     const markerData = kakaoMarkers[markerIndex].rowData;
     const oldStatus = markerData.상태;
 
-    // ✅ 상태 변경 메모 추가
+    // 상태 변경 메모 추가
     const now = new Date();
     const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const memoText = `상태변경: ${oldStatus}->${newStatus} (${timeStr})`;
     if (!markerData.메모) markerData.메모 = [];
     markerData.메모.push({ 내용: memoText, 시간: timeStr });
     
-    // ✅ 기록사항 업데이트
+    // 기록사항 업데이트
     const memoEntry = `${markerData.메모.length}. ${memoText}`;
     markerData.기록사항 = (!markerData.기록사항 || markerData.기록사항.trim() === '' || markerData.기록사항 === '-') 
         ? memoEntry 
@@ -508,6 +523,13 @@ function changeMarkerStatus(markerIndex, newStatus) {
         }
     });
 
+    // ✅ markerListData도 업데이트
+    markerListData.forEach(item => {
+        if (item.주소 === targetAddress) {
+            item.상태 = newStatus;
+        }
+    });
+
     // 원본 데이터 업데이트
     const row = currentProject.data.find(r => r.id === markerData.id);
     if (row) {
@@ -523,6 +545,11 @@ function changeMarkerStatus(markerIndex, newStatus) {
     currentDisplayedMarkers.forEach(item => {
         if (item.index === markerIndex) item.data.상태 = newStatus;
     });
+    
+    // ✅ 마커 목록 업데이트
+    if (document.getElementById('markerListPanel').style.display !== 'none') {
+        updateMarkerList();
+    }
     
     showBottomInfoPanel(markerData, markerIndex);
 }
