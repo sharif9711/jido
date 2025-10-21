@@ -7,7 +7,7 @@ async function initApp() {
     console.log('🚀 Initializing application...');
 
     // ✅ 로그인 확인
-    const authRes = await fetch("/html/map/api/auth.php");
+    const authRes = await fetch("/map/api/auth.php");
     const authData = await authRes.json();
 
     if (!authData.success) {
@@ -19,7 +19,7 @@ async function initApp() {
     console.log(`👤 로그인된 사용자: ${authData.mb_id}`);
 
     // ✅ 서버에서 프로젝트 목록 불러오기
-    const projectRes = await fetch("/html/map/api/get_projects.php");
+    const projectRes = await fetch("/map/api/get_projects.php");
     const projectData = await projectRes.json();
 
     if (projectData.success && Array.isArray(projectData.projects)) {
