@@ -489,3 +489,84 @@ async function fetchLandInfoForReport() {
     }
 }
 // ✅ getAddressDetailInfo 함수 끝
+
+// ✅ project-detail.js - 자동 저장 + 토지정보 연동
+console.log("✅ js/project-detail.js loaded successfully.");
+
+// ... (기존 코드 유지: showProjectDetail, switchTab, fetchLandInfoCore 등)
+
+// ✅ 서버 자동 저장 공통 함수
+async function saveProjectToServer() {
+    if (!currentProject) return;
+    try {
+        const response = await fetch("/html/map/api/save_project.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                id: currentProject.id,
+                projectName: currentProject.projectName,
+                mapType: currentProject.mapType,
+                data: currentProject.data,
+                createdAt: currentProject.createdAt
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            console.log(`💾 서버 저장 성공: ${currentProject.projectName}`);
+            const idx = projects.findIndex(p => p.id === currentProject.id);
+            if (idx !== -1) projects[idx] = currentProject;
+            localStorage.setItem("vworldProjects", JSON.stringify(projects));
+        } else {
+            console.warn(`⚠️ 서버 저장 실패: ${result.message}`);
+        }
+    } catch (error) {
+        console.error("❌ 서버 저장 중 오류:", error);
+    }
+}
+
+// ✅ 데이터 입력 시 자동 저장
+function updateCellAndRefresh(rowId, field, value) {
+    if (updateCell(rowId, field, value)) {
+        renderReportTable();
+        updateMapCount();
+        saveProjectToServer(); // 🔹 자동 저장
+    }
+}
+
+// ✅ 상태 변경 시 자동 저장
+function updateReportStatus(rowId, status) {
+    if (updateCell(rowId, '상태', status)) {
+        renderReportTable();
+        saveProjectToServer(); // 🔹 자동 저장
+    }
+}
+
+// ✅ 토지정보 조회 후 자동 저장
+async function fetchLandInfoCore(targetRows) {
+    const total = targetRows.length;
+    showProgress(0);
+
+    for (let i = 0; i < total; i++) {
+        const row = targetRows[i];
+        try {
+            const info = await getAddressDetailInfo(row.주소);
+            if (info) Object.assign(row, info);
+        } catch (err) {
+            console.error(`❌ 오류 [${i + 1}/${total}]`, err);
+        }
+        showProgress(((i + 1) / total) * 100);
+        await new Promise(res => setTimeout(res, 400));
+    }
+
+    showProgress(100);
+    setTimeout(() => showProgress(0), 1500);
+
+    const projectIndex = projects.findIndex(p => p.id === currentProject.id);
+    if (projectIndex !== -1) projects[projectIndex] = currentProject;
+    renderReportTable();
+    showToast(`✅ 토지정보 ${total}건 갱신 완료`);
+
+    saveProjectToServer(); // 🔹 자동 저장
+}
+
