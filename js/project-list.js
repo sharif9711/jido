@@ -62,7 +62,7 @@ async function deleteProject(event, projectId) {
 
     // 서버 삭제 요청
     try {
-        const res = await fetch("/html/map/api/delete_project.php", {
+        const res = await fetch("/map/api/delete_project.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ project_id: projectId })
