@@ -499,7 +499,7 @@ console.log("✅ js/project-detail.js loaded successfully.");
 async function saveProjectToServer() {
     if (!currentProject) return;
     try {
-        const response = await fetch("/html/map/api/save_project.php", {
+        const response = await fetch("/map/api/save_project.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
